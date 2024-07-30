@@ -4,8 +4,10 @@ TreeNode Managers Module
 
 """
 
+from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
-from django.db.models import Case, When, Value
+from django.db.models import OuterRef, Subquery
+from django.db.models.functions import Cast, LPad
 
 
 class TreeNodeQuerySet(models.QuerySet):
@@ -18,23 +20,20 @@ class TreeNodeQuerySet(models.QuerySet):
     def bulk_create(self, objs, batch_size=None, ignore_conflicts=False):
         objs = super().bulk_create(objs, batch_size, ignore_conflicts)
 
-        objs = self.model.closure_model.bulk_create([
-            self.model.closure_model(
-                parent=item,
-                child=item,
-                depth=0
-            )
-        ] for item in objs)
+        objs = self.model.closure_model.bulk_create(
+            [self.model.closure_model(parent=item, child=item, depth=0)]
+            for item in objs
+        )
 
         for node in objs:
             qs = self.model.closure_model.objects.all()
-            parents = qs.filter(child=node.tn_parent).values('parent', 'depth')
-            children = qs.filter(parent=node).values('child', 'depth')
+            parents = qs.filter(child=node.tn_parent).values("parent", "depth")
+            children = qs.filter(parent=node).values("child", "depth")
             objects = [
                 self.model.closure_model(
-                    parent_id=p['parent'],
-                    child_id=c['child'],
-                    depth=p['depth'] + c['depth'] + 1
+                    parent_id=p["parent"],
+                    child_id=c["child"],
+                    depth=p["depth"] + c["depth"] + 1,
                 )
                 for p in parents
                 for c in children
@@ -53,17 +52,26 @@ class TreeNodeManager(models.Manager):
         Forms a QuerySet ordered by the materialized path.
         """
 
-        qs = TreeNodeQuerySet(self.model, using=self._db)
-        node_list = sorted([node for node in qs], key=lambda x: x.tn_order)
-        pk_list = [node.pk for node in node_list]
+        ClosureModel = self.model.closure_model
+        # TODO:add a Mysql compatible and check for db engine to select an appropiate query
 
-        # Retrieve the queryset with the desired ordering
-        return qs.filter(pk__in=pk_list).order_by(
-            Case(*[When(pk=pk, then=Value(ordering))
-                   for ordering, pk in enumerate(pk_list)],
-                 default=Value(len(pk_list)),
-                 output_field=models.IntegerField(),
-                 )
+        tn_order_subquery = (
+            ClosureModel.objects.filter(child=OuterRef("pk"))
+            .values("child")
+            .annotate(
+                tn_order=StringAgg(
+                    LPad(Cast("parent__tn_priority", models.TextField()), 6), ""
+                )
+            )
+            .values("tn_order")
         )
 
-# End
+        qs = TreeNodeQuerySet(self.model, using=self._db)
+
+        # Retrieve the queryset with the desired ordering
+        qs = qs.annotate(tn_order_str=Subquery(tn_order_subquery)).order_by(
+            models.expressions.OrderBy(models.F("tn_order_str"), nulls_first=True),
+            "id",
+        )
+
+        return qs

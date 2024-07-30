@@ -13,19 +13,19 @@ from django import forms
 
 class TreeWidget(forms.Select):
 
-    template_name = 'widgets/select2tree.html'
-    option_template_name = 'widgets/options.html'
+    template_name = "widgets/select2tree.html"
+    option_template_name = "widgets/options.html"
 
     class Media:
         css = {
-            'all': (
-                'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css',
-                'select2tree/select2tree.css',
-            )}
+            "all": (
+                "https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css",
+                "select2tree/select2tree.css",
+            )
+        }
         js = (
-            'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js',
-            'select2tree/select2tree.js',
-
+            "https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js",
+            "select2tree/select2tree.js",
         )
 
     def create_option(self, name, value, *args, **kwargs):
@@ -35,9 +35,9 @@ class TreeWidget(forms.Select):
 
             item = self.choices.queryset.get(pk=value.value)
             if item.tn_parent:
-                option['parent'] = item.tn_parent.id
+                option["parent"] = item.tn_parent.id
             else:
-                option['parent'] = ''
-            option['level'] = item.level
-            option['leaf'] = item.is_leaf()
+                option["parent"] = ""
+            option["level"] = item.level
+            option["leaf"] = item.is_leaf()
         return option

@@ -3,11 +3,9 @@
 TreeNode Models Module
 
 """
-
-
-from django.db import models
-from django.db import transaction
 from django.core.cache import caches
+from django.db import models, transaction
+from django.db.models import Max
 from django.utils.translation import gettext_lazy as _
 from six import with_metaclass
 from . import classproperty
@@ -16,7 +14,25 @@ from .factory import TreeFactory
 from .managers import TreeNodeManager
 
 
-treenode_cache = caches['treenode']
+def _get_cache():
+    """
+    Ensures that 'treenode' uses a separate cache storage.
+
+    This is useful in scenarios where clearing the general cache could inadvertently clear all system caches.
+    By using a dedicated cache for 'treenode', we prevent such cases and ensure that the 'treenode' data
+    remains intact even if other caches are flushed.
+    """
+
+    try:
+        return caches["treenode"]
+    except KeyError:
+        raise KeyError(
+            "The 'treenode' cache is not configured in your settings. Please add 'treenode' to the CACHES setting."
+        )
+
+
+treenode_cache = _get_cache()
+
 
 def cached_tree_method(func):
     """
@@ -50,17 +66,17 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
     treenode_display_field = None
 
     tn_parent = models.ForeignKey(
-        'self',
-        related_name='tn_children',
+        "self",
+        related_name="tn_children",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        verbose_name=_('Parent'),
+        verbose_name=_("Parent"),
     )
 
     tn_priority = models.PositiveIntegerField(
         default=0,
-        verbose_name=_('Priority'),
+        verbose_name=_("Priority"),
     )
 
     objects = TreeNodeManager()
@@ -72,17 +88,20 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         if self.treenode_display_field:
             return str(getattr(self, self.treenode_display_field))
         else:
-            return 'Node %d' % self.pk
+            return "Node %d" % self.pk
 
     # Public methods
+    def order_me_first(self):
+        # HINT:This could be for all models in UrlBaseModel
+        # orders descending starts from 0 onwards
+        return models.Case(models.When(id=self.id, then=0), default=1)
 
     @classmethod
     def get_roots(cls):
         """Get a list with all root nodes"""
-        return list(item for item in cls.get_roots_queryset())
+        return list(cls.get_roots_queryset())
 
     @classmethod
-    @cached_tree_method
     def get_roots_queryset(cls):
         """Get root nodes queryset"""
         return cls.objects.filter(tn_parent=None)
@@ -92,7 +111,14 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
     def get_tree(cls, instance=None):
         """Get a n-dimensional dict representing the model tree"""
 
-        objs_list = list(instance,) if instance else cls.get_roots()
+        objs_list = (
+            list(
+                instance,
+            )
+            if instance
+            else cls.get_roots()
+        )
+
         objs_tree = list()
         for item in objs_list:
             objs_tree.append(item.object2dict(item, []))
@@ -104,7 +130,7 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         """Get a multiline string representing the model tree"""
 
         objs = list(cls.objects.all())
-        return '\n'.join(['%s' % (obj,) for obj in objs])
+        return "\n".join(["%s" % (obj,) for obj in objs])
 
     @classmethod
     def update_tree(cls):
@@ -118,26 +144,22 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         # the amount of memory used.
         # I'm sorry, I don't have time for that right now.
 
-        cls.closure_model.objects.bulk_create([
-            cls.closure_model(
-                parent_id=item.pk,
-                child_id=item.pk,
-                depth=0
-            )
-            for item in cls.objects.all()
-        ])
+        cls.closure_model.objects.bulk_create(
+            [
+                cls.closure_model(parent_id=item.pk, child_id=item.pk, depth=0)
+                for item in cls.objects.all()
+            ]
+        )
 
         for node in cls.objects.all():
             queryset = cls.closure_model.objects.all()
-            parents = queryset.filter(
-                child=node.parent).values('parent', 'depth')
-            children = queryset.filter(
-                parent=node).values('child', 'depth')
+            parents = queryset.filter(child=node.parent).values("parent", "depth")
+            children = queryset.filter(parent=node).values("child", "depth")
             objects = [
                 cls.closure_model(
-                    parent_id=p['parent'],
-                    child_id=c['child'],
-                    depth=p['depth'] + c['depth'] + 1
+                    parent_id=p["parent"],
+                    child_id=c["child"],
+                    depth=p["depth"] + c["depth"] + 1,
                 )
                 for p in parents
                 for c in children
@@ -156,9 +178,9 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
 
         options = dict(child_id=self.pk, depth__gte=0 if include_self else 1)
         if depth:
-            options.update({'depth__lte': depth})
+            options.update({"depth__lte": depth})
 
-        qs = self._closure_model.objects.filter(**options).order_by('-depth')
+        qs = self._closure_model.objects.filter(**options).order_by("-depth")
 
         return list(item.parent for item in qs)
 
@@ -172,21 +194,20 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
 
         options = dict(child_id=self.pk, depth__gte=0 if include_self else 1)
         if depth:
-            options.update({'depth__lte': depth})
+            options.update({"depth__lte": depth})
 
-        qs = self._closure_model.objects.filter(**options).order_by('-depth')
+        qs = self._closure_model.objects.filter(**options).order_by("-depth")
 
         return list(item.parent.pk for item in qs)
 
-    @cached_tree_method
     def get_ancestors_queryset(self, include_self=True, depth=None):
         """Get the ancestors queryset (self, ordered from parent to root)"""
 
         options = dict(child_id=self.pk, depth__gte=0 if include_self else 1)
         if depth:
-            options.update({'depth__lte': depth})
+            options.update({"depth__lte": depth})
 
-        qs = self._closure_model.objects.filter(**options).order_by('-depth')
+        qs = self._closure_model.objects.filter(**options).order_by("-depth")
         select = list(item.parent.pk for item in qs)
         result = self._meta.model.objects.filter(pk__in=select)
         return result
@@ -195,41 +216,42 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
     def get_breadcrumbs(self, attr=None):
         """Get the breadcrumbs to current node (self, included)"""
 
-        qs = self._closure_model.objects.filter(child=self).order_by('-depth')
-        if attr:
-            return list(getattr(item.parent, attr) for item in qs)
-        else:
-            return list(item.parent for item in qs)
+        qs = self._closure_model.objects.filter(child=self).order_by("-depth")
+        lookup_ = f"parent_id__{attr}" if attr else "parent_id"
+        return qs.values_list(lookup_, flat=True)
 
     def get_children(self):
         """Get a list containing all children"""
 
-        return list(self.self.get_children_queryset())
+        return list(self.get_children_queryset())
 
     def get_children_count(self):
         """Get the children count"""
 
         return self.get_children_queryset().count()
 
-    def get_children_pks(self):
+    def get_children_pks(self, include_self=False):
         """Get the children pks list"""
+        qs = self.get_descendants_queryset(include_self=include_self, depth=1)
 
-        return [ch.pk for ch in self.get_children_queryset()]
+        return list(qs.values_list("pk", flat=True))
 
-    @cached_tree_method
-    def get_children_queryset(self):
+    def get_children_queryset(self, include_self=False):
         """Get the children queryset"""
+
         return self._meta.model.objects.filter(tn_parent=self.id)
 
     def get_depth(self):
         """Get the node depth (self, how many levels of descendants)"""
+        # FIXME:Consider scenerios where None is returned i.e. in root nodes
+        # FOr now None is Coalesced to 0
+        max_depth = self._closure_model.objects.filter(parent=self).aggregate(
+            max_depth=models.functions.Coalesce(Max("depth"), 0)
+        )["max_depth"]
 
-        depths = self._closure_model.objects.filter(parent=self).values_list(
-            'depth',
-            flat=True
-        )
-        return max(depths)
+        return max_depth
 
+    @cached_tree_method
     def get_descendants(self, include_self=False, depth=None):
         """Get a list containing all descendants"""
         return list(self.get_descendants_queryset(include_self, depth))
@@ -238,21 +260,20 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         """Get the descendants count"""
         return self.get_descendants_queryset().count()
 
+    # @cached_tree_method
     def get_descendants_pks(self, include_self=False, depth=None):
         """Get the descendants pks list"""
-        options = dict(parent_id=self.pk, depth__gte=0 if include_self else 1)
-        if depth:
-            options.update({'depth__lte': depth})
+        qs = self.get_descendants_queryset(include_self=include_self, depth=depth)
 
-        qs = self._closure_model.objects.filter(**options)
-        return [ch.child.pk for ch in qs] if qs else []
+        return list(qs.values_list("child_id", flat=True))
 
-    @cached_tree_method
     def get_descendants_queryset(self, include_self=False, depth=None):
         """Get the descendants queryset"""
+        options = dict(parent_id=self.pk, depth__gte=0 if include_self else 1)
+        if depth:
+            options.update({"depth__lte": depth})
 
-        pks = self.get_descendants_pks(include_self, depth)
-        return self._meta.model.objects.filter(pk__in=pks)
+        return self._closure_model.objects.filter(**options)
 
     def get_descendants_tree(self):
         """Get a n-dimensional dict representing the model tree"""
@@ -263,7 +284,7 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         """Get a multiline string representing the model tree"""
 
         objs = self.get_descendants()
-        return '\n'.join(['%s' % (obj,) for obj in objs])
+        return "\n".join(["%s" % (obj,) for obj in objs])
 
     def get_first_child(self):
         """Get the first child node"""
@@ -280,20 +301,24 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
 
     def get_level(self):
         """Get the node level (self, starting from 1)"""
+        # FIXME:Consider scenerios where None is returned i.e. in root nodes
+        # FOr now None is Coalesced to 0
+        max_level = self._closure_model.objects.filter(child=self).aggregate(
+            max_depth=models.functions.Coalesce(Max(models.F("depth")), 0) + 1
+        )["max_depth"]
+        return max_level
 
-        levels = self._closure_model.objects.filter(child=self).values_list(
-            'depth',
-            flat=True
-        )
-        return max(levels) + 1
-
-    def get_path(self, prefix='', suffix='', delimiter='.', format_str=''):
+    def get_path(self, prefix="", suffix="", delimiter=".", format_str=""):
         """Return Materialized Path of node"""
 
-        str_ = '{%s}' % format_str
-        return prefix + delimiter.join(
-            str_.format(i) for i in self.get_breadcrumbs(attr='tn_priority')
-        ) + suffix
+        str_ = "{%s}" % format_str
+        return (
+            prefix
+            + delimiter.join(
+                str_.format(i) for i in self.get_breadcrumbs(attr="tn_priority")
+            )
+            + suffix
+        )
 
     def get_parent(self):
         """Get the parent node"""
@@ -316,7 +341,7 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
 
     def get_root(self):
         """Get the root node for the current node"""
-        qs = self._closure_model.objects.filter(child=self).order_by('depth')
+        qs = self._closure_model.objects.filter(child=self).order_by("depth")
         return qs.last().parent if qs.count() > 0 else None
 
     def get_root_pk(self):
@@ -335,9 +360,9 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         """Get the siblings pks list"""
         return [item.pk for item in self.get_siblings_queryset()]
 
-    @cached_tree_method
     def get_siblings_queryset(self):
         """Get the siblings queryset"""
+        # TODO:Add include_self
         if self.tn_parent:
             queryset = self.tn_parent.tn_children.all()
         else:
@@ -386,6 +411,7 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         """Return True if the current node is sibling of target_obj"""
         return self in target_obj.tn_parent.tn_children.all()
 
+    # DEPRACATED :Remove delete method as no longer needed
     # I think this method is not needed.
     # Clearing entries in the Closure Table will happen automatically
     # via cascading deletion
@@ -394,8 +420,6 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
     #    """Delete a node if cascade=True (default behaviour), children and
     #    descendants will be deleted too, otherwise children's parent will be
     #    set to None (then children become roots)"""
-
-    # pass
 
     # Public properties
     # All properties map a get_{{property}}() method.
@@ -523,37 +547,37 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
 
     @property
     def tn_order(self):
-        path = self.get_breadcrumbs(attr='tn_priority')
-        return ''.join(['{:0>6g}'.format(i) for i in path])
+        # TODO:This is no longer required and should be removed in coming versions
+        path = self.get_breadcrumbs(attr="tn_priority")
+        return "".join(["{:0>6g}".format(i) for i in path])
 
     @cached_tree_method
     def object2dict(self, instance, exclude=[]):
         """Convert Class Object to python dict"""
+        # TODO:Optimize this method as it takes a longer time on larger trees
 
         result = dict()
 
-        if not hasattr(instance, '__dict__'):
+        if not hasattr(instance, "__dict__"):
             return instance
 
         new_subdic = dict(vars(instance))
         for key, value in new_subdic.items():
-            if key.startswith('_') or key in exclude:
+            if key.startswith("_") or key in exclude:
                 continue
             result.update({key: self.object2dict(value, exclude)})
 
         childs = instance.tn_children.all()
-        if childs.count() > 0:
-            result.update({
-                'children': [
-                    obj.object2dict(obj, exclude)
-                    for obj in childs.all()]
-            })
-        result.update({'path': instance.get_path(format_str=':d')})
+        if childs.exists():
+            result.update(
+                {"children": [obj.object2dict(obj, exclude) for obj in childs]}
+            )
+        result.update({"path": instance.get_path(format_str=":d")})
         return result
 
     @cached_tree_method
-    def get_display(self, indent=True, mark='— '):
-        indentation = (mark * self.tn_ancestors_count) if indent else ''
+    def get_display(self, indent=True, mark="— "):
+        indentation = (mark * self.tn_ancestors_count) if indent else ""
         indentation = force_str(indentation)
         text = self.get_display_text()
         text = force_str(text)
@@ -567,11 +591,13 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         otherwise falls back on the model's pk.
         Override this method to return another field or a computed value. #27
         """
-        text = ''
-        if (hasattr(self, 'treenode_display_field') and
-                self.treenode_display_field is not None):
-            field_name = getattr(self, 'treenode_display_field')
-            text = getattr(self, field_name, '')
+        text = ""
+        if (
+            hasattr(self, "treenode_display_field")
+            and self.treenode_display_field is not None
+        ):
+            field_name = getattr(self, "treenode_display_field")
+            text = getattr(self, field_name, "")
         if not text and self.pk:
             text = self.pk
         return force_str(text)
@@ -582,21 +608,17 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
 
         treenode_cache.clear()
 
-        instance = self._closure_model.objects.create(
-            parent=self,
-            child=self,
-            depth=0
-        )
+        instance = self._closure_model.objects.create(parent=self, child=self, depth=0)
         instance.save()
 
         qs = self._closure_model.objects.all()
-        parents = qs.filter(child=self.tn_parent).values('parent', 'depth')
-        children = qs.filter(parent=self).values('child', 'depth')
+        parents = qs.filter(child=self.tn_parent).values("parent", "depth")
+        children = qs.filter(parent=self).values("child", "depth")
         objects = [
             self._closure_model(
-                parent_id=p['parent'],
-                child_id=c['child'],
-                depth=p['depth'] + c['depth'] + 1
+                parent_id=p["parent"],
+                child_id=c["child"],
+                depth=p["depth"] + c["depth"] + 1,
             )
             for p in parents
             for c in children
@@ -609,20 +631,19 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
 
         target = self.tn_parent
         qs = self._closure_model.objects.all()
-        subtree = qs.filter(parent=self).values('child', 'depth')
-        supertree = qs.filter(child=target).values('parent', 'depth')
+        subtree = qs.filter(parent=self).values("child", "depth")
+        supertree = qs.filter(child=target).values("parent", "depth")
 
         # Step 1. Delete
         subtree_pks = [node.child.pk for node in qs.filter(parent=self)]
-        qs.filter(child_id__in=subtree_pks).exclude(
-            parent_id__in=subtree_pks).delete()
+        qs.filter(child_id__in=subtree_pks).exclude(parent_id__in=subtree_pks).delete()
 
         # Step 2. Insert
         objects = [
             self._closure_model(
-                parent_id=p['parent'],
-                child_id=c['child'],
-                depth=p['depth'] + c['depth'] + 1
+                parent_id=p["parent"],
+                child_id=c["child"],
+                depth=p["depth"] + c["depth"] + 1,
             )
             for p in supertree
             for c in subtree
@@ -645,8 +666,7 @@ class TreeNodeModel(with_metaclass(TreeFactory, models.Model)):
         for index in range(len(sorted_siblings)):
             sorted_siblings[index].tn_priority = index
 
-        self._meta.model.objects.bulk_update(
-            sorted_siblings, ('tn_priority', ))
+        self._meta.model.objects.bulk_update(sorted_siblings, ("tn_priority",))
 
     def save(self, force_insert=False, *args, **kwargs):
         treenode_cache.clear()

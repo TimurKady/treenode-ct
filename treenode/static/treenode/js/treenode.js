@@ -1,16 +1,14 @@
 /** global: django */
 
-(function($) {
+(function ($) {
 
-    $(document).ready(function()
-    {
+    $(document).ready(function () {
         var rowsExpandedDataKeyPrefix = 'treenode_admin_accordion_state_for';
         var rowsExpandedDataKeySuffix = '';
         var rowsExpandedDataKey = '';
         var rowsExpandedDataSep = ',';
 
-        function loadAccordionExpandedRows()
-        {
+        function loadAccordionExpandedRows() {
             // TODO: add option to expand all on load
             var rowEl;
             var rowSel;
@@ -24,11 +22,10 @@
             }
         }
 
-        function saveAccordionExpandedRows()
-        {
+        function saveAccordionExpandedRows() {
             var rowPk;
             var rowsExpanded = [];
-            $('.treenode-accordion.treenode-expanded').each(function(){
+            $('.treenode-accordion.treenode-expanded').each(function () {
                 rowPk = $(this).attr('data-treenode-pk');
                 rowsExpanded.push(rowPk);
             });
@@ -36,9 +33,8 @@
             localStorage.setItem(rowsExpandedDataKey, rowsExpandedData);
         }
 
-        function updateAccordionEvenOddRows()
-        {
-            $('.treenode-accordion').not('.treenode-hide').each(function(index, element){
+        function updateAccordionEvenOddRows() {
+            $('.treenode-accordion').not('.treenode-hide').each(function (index, element) {
                 $(this).removeClass('row1');
                 $(this).removeClass('row2');
                 // update rows even/odd class
@@ -50,23 +46,21 @@
             });
         }
 
-        function expandAccordionRow(target)
-        {
+        function expandAccordionRow(target) {
             var rowPk = target.attr('data-treenode-pk');
             var rowSel = '[data-treenode-parent="' + rowPk + '"]';
             var rowEl = $('.treenode-accordion').filter(rowSel);
             if (!target.hasClass('treenode-hide')) {
                 rowEl.removeClass('treenode-hide');
             }
-            rowEl.each(function(){
+            rowEl.each(function () {
                 if ($(this).hasClass('treenode-expanded')) {
                     $(this).trigger('treenode-expand');
                 }
             });
         }
 
-        function collapseAccordionRow(target)
-        {
+        function collapseAccordionRow(target) {
             var rowPk = target.attr('data-treenode-pk');
             var rowSel = '[data-treenode-parent="' + rowPk + '"]';
             var rowEl = $('.treenode-accordion').filter(rowSel);
@@ -74,8 +68,7 @@
             rowEl.trigger('treenode-collapse');
         }
 
-        function toggleAccordionRow(target)
-        {
+        function toggleAccordionRow(target) {
             if (target.hasClass('treenode-accordion')) {
                 if (target.hasClass('treenode-expanded')) {
                     target.removeClass('treenode-expanded');
@@ -90,9 +83,8 @@
             }
         }
 
-        function init()
-        {
-            $('.treenode').each(function(){
+        function init() {
+            $('.treenode').each(function () {
 
                 var scope = $(this);
 
@@ -142,13 +134,13 @@
                     return;
                 }
 
-                rowEl.bind('treenode-expand', function(e){
+                rowEl.bind('treenode-expand', function (e) {
                     e.preventDefault();
                     expandAccordionRow(rowEl);
                     return false;
                 });
 
-                rowEl.bind('treenode-collapse', function(e){
+                rowEl.bind('treenode-collapse', function (e) {
                     e.preventDefault();
                     collapseAccordionRow(rowEl);
                     return false;
@@ -166,7 +158,7 @@
                 var rowToggleButtonEl = $(rowToggleButtonHTML);
                 rowToggleButtonEl.css('margin-left', (25 * (rowLevel - 1)));
                 rowToggleButtonEl.insertBefore(rowAnchor);
-                rowToggleButtonEl.click(function(e){
+                rowToggleButtonEl.click(function (e) {
                     e.preventDefault();
                     toggleAccordionRow(rowEl);
                     return false;
