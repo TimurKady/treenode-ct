@@ -26,7 +26,9 @@ This is currently the most productive solution for working with hierarchical dat
 5. Run python manage.py makemigrations and ```python manage.py migrate```
 
 For more information on migrating from the **django-treenode** package and upgrading to version 2.0, see [below](#migration-guide).
+
 ---
+
 ## Usage
 
 Full documentation: 
