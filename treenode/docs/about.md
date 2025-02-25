@@ -103,5 +103,3 @@ Enabling tree structures to function without a strict dependency on Django.
 
 Stay tuned for updates!
 Your wishes, objections, comments are welcome.
-
----
