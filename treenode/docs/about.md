@@ -14,7 +14,7 @@ That is, an excellent debut idea, in my humble opinion, should have been improve
 ---
 
 ### The Development of the Idea
-My idea was to solve these problems by combining the adjacency list with the **Closure Table**. Main advantages:
+My idea was to solve these problems by combining the **Adjacency List** with the **Closure Table**. Main advantages:
 * the Closure Model is generated automatically;
 * maintained compatibility with the original package at the level of documented functions;
 * most requests are satisfied in one call to the database;
