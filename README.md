@@ -29,8 +29,10 @@ For more information on migrating from the **django-treenode** package and upgra
 ---
 ## Usage
 
-Full documentation:
+Full documentation: 
+
 Import and export:
+
 Migration and upgrade guide:
 
 ---
