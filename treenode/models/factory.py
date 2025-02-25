@@ -61,11 +61,21 @@ class TreeFactory(models.base.ModelBase):
                 on_delete=models.CASCADE,
             ),
 
+            "node": models.OneToOneField(
+                cls._meta.model,
+                related_name="tn_closure",
+                on_delete=models.CASCADE,
+                null=True,
+                blank=True,
+            ),
+
             "__module__": cls.__module__
         }
+
         closure_model = type(closure_name, (ClosureModel,), fields)
         setattr(sys.modules[cls.__module__], closure_name, closure_model)
 
         cls.closure_model = closure_model
+
 
 # The End

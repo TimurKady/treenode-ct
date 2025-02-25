@@ -11,14 +11,13 @@ Features:
 - `TreeNodeQuerySet` and `TreeNodeModelManager` for adjacency model operations.
 - Optimized `bulk_create` and `bulk_update` methods with atomic transactions.
 
-Version: 2.0.11
+Version: 2.1.0
 Author: Timur Kady
 Email: timurkady@yandex.com
 """
 
 from collections import deque, defaultdict
 from django.db import models, transaction
-from django.db.models import F
 from django.db import connection
 
 
@@ -68,7 +67,7 @@ class ClosureQuerySet(models.QuerySet):
 
         # 1. Создаем self-ссылки для всех узлов: (node, node, 0).
         self_links = [
-            self.model(parent=obj, child=obj, depth=0)
+            self.model(parent=obj, child=obj, depth=0, node=obj)
             for obj in objs
         ]
         result.extend(
@@ -150,8 +149,6 @@ class ClosureQuerySet(models.QuerySet):
                 process_level(next_level)
 
         process_level(current_nodes)
-
-        self.model.clear_cache()
         return result
 
     @transaction.atomic
@@ -260,7 +257,6 @@ class ClosureQuerySet(models.QuerySet):
 
         # 6. Сохраняем новые записи пакетно
         super().bulk_create(new_closure_entries)
-        self.model.clear_cache()
 
 
 class ClosureModelManager(models.Manager):
@@ -272,12 +268,10 @@ class ClosureModelManager(models.Manager):
 
     def bulk_create(self, objs, batch_size=1000):
         """Create objects in bulk."""
-        self.model.clear_cache()
         return self.get_queryset().bulk_create(objs, batch_size=batch_size)
 
     def bulk_update(self, objs, fields=None, batch_size=1000):
         """Move nodes in ClosureModel."""
-        self.model.clear_cache()
         return self.get_queryset().bulk_update(
             objs, fields, batch_size=batch_size
         )
@@ -294,6 +288,28 @@ class TreeNodeQuerySet(models.QuerySet):
         """Init."""
         self.closure_model = model.closure_model
         super().__init__(model, query, using, hints)
+
+    def create(self, **kwargs):
+        """Ensure that the save logic is executed when using create."""
+        obj = self.model(**kwargs)
+        obj.save()
+        return obj
+
+    def get_or_create(self, defaults=None, **kwargs):
+        """Ensure that the save logic is executed when using get_or_create."""
+        defaults = defaults or {}
+        created = False
+
+        with transaction.atomic():
+            obj = self.filter(**kwargs).first()
+            if obj is None:
+                params = {k: v for k, v in kwargs.items() if "__" not in k}
+                params.update(
+                    {k: v() if callable(v) else v for k, v in defaults.items()}
+                )
+                obj = self.create(**params)
+                created = True
+        return obj, created
 
     @transaction.atomic
     def bulk_create(self, objs, batch_size=1000, *args, **kwargs):
@@ -325,9 +341,6 @@ class TreeNodeQuerySet(models.QuerySet):
             self.closure_model.objects.bulk_update(
                 objs, ["tn_parent",], batch_size
             )
-
-        # 3. Очиска кэша и возрат результата
-        self.model.clear_cache()
         return result
 
 
@@ -346,7 +359,7 @@ class TreeNodeModelManager(models.Manager):
         result = self.get_queryset().bulk_create(
             objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts
         )
-        transaction.on_commit(lambda: self.update_auto_increment())
+        transaction.on_commit(lambda: self._update_auto_increment())
         return result
 
     def bulk_update(self, objs, fields=None, batch_size=1000):
@@ -356,15 +369,21 @@ class TreeNodeModelManager(models.Manager):
         return result
 
     def get_queryset(self):
-        """Return a QuerySet that sorts by 'tn_parent' and 'tn_priority'."""
-        queryset = TreeNodeQuerySet(self.model, using=self._db)
-        return queryset.order_by(
-            F('tn_parent').asc(nulls_first=True),
-            'tn_parent',
-            'tn_priority'
-        )
+        """Return a sorted QuerySet."""
+        queryset = TreeNodeQuerySet(self.model, using=self._db)\
+            .select_related("tn_closure")\
+            .annotate(depth=models.Max("parents_set__depth"))\
+            .order_by("depth", "tn_parent", "tn_priority")
+        return queryset
 
-    def get_auto_increment_sequence(self):
+    # Service methods -------------------
+
+    def _bulk_update_tn_closure(self, objs, fields=None, batch_size=1000):
+        """Update tn_closure in bulk."""
+        self.model.clear_cache()
+        super().bulk_update(objs, fields, batch_size)
+
+    def _get_auto_increment_sequence(self):
         """Get auto increment sequence."""
         table_name = self.model._meta.db_table
         pk_column = self.model._meta.pk.column
@@ -374,14 +393,14 @@ class TreeNodeModelManager(models.Manager):
             result = cursor.fetchone()
         return result[0] if result else None
 
-    def update_auto_increment(self):
+    def _update_auto_increment(self):
         """Update auto increment."""
         table_name = self.model._meta.db_table
         with connection.cursor() as cursor:
             db_engine = connection.vendor
 
             if db_engine == "postgresql":
-                sequence_name = self.get_auto_increment_sequence()
+                sequence_name = self._get_auto_increment_sequence()
                 # Получаем максимальный id из таблицы
                 cursor.execute(
                     f"SELECT COALESCE(MAX(id), 0) FROM {table_name};"

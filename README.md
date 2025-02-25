@@ -3,7 +3,7 @@ __Combination of Adjacency List and Closure Table__
 
 ## Functions
 Application for supporting tree (hierarchical) data structure in Django projects
-* **fast**: the fastest of the two methods is used to process requests, combining the advantages of an **Adjacency Table** and a **Closure Table**,
+* **fast**: the fastest of the two methods is used to process requests, combining the advantages of an **Adjacency List** and a **Closure Table**,
 * **even faster**: the main resource-intensive operations are **cached**; **bulk operations** are used for inserts and changes,
 * **scale**: optimized for working with large models with a high level of nesting,
 * **easy setup**: just extend the abstract model/model-admin,
@@ -120,9 +120,21 @@ CACHES = {
 ```
 ### `forms.py`
 
+```python
+from treenode.forms import TreeNodeForm
+
+class YoursCustomForm(TreeNodeForm):
+    # Yours code is here
+
 ```
-class YoursForm(TreeNodeForm):
-    # Your code is here
+
+### `managers.py`
+```python
+from treenode.managers import TreeNodeModelManager
+
+class YoursCustomManager(TreeNodeModelManager):
+    # Yours code is here
+
 ```
 
 ## Usage (API)

@@ -18,9 +18,10 @@ Email: timurkady@yandex.com
 
 
 from django.db import models, transaction
+from django.db.models.signals import pre_save, post_save
 
 from ..managers import ClosureModelManager
-from ..cache import cached_method, treenode_cache
+from ..sinals import disable_signals
 
 
 class ClosureModel(models.Model):
@@ -44,6 +45,14 @@ class ClosureModel(models.Model):
 
     depth = models.PositiveIntegerField()
 
+    node = models.OneToOneField(
+        'TreeNodeModel',
+        related_name="tn_closure",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
     objects = ClosureModelManager()
 
     class Meta:
@@ -53,6 +62,7 @@ class ClosureModel(models.Model):
         unique_together = (("parent", "child"),)
         indexes = [
             models.Index(fields=["parent", "child"]),
+            models.Index(fields=["child", "parent"]),
             models.Index(fields=["parent", "child", "depth"]),
         ]
 
@@ -63,39 +73,34 @@ class ClosureModel(models.Model):
     # ----------- Methods of working with tree structure ----------- #
 
     @classmethod
-    def clear_cache(cls):
-        """Clear cache for this model only."""
-        treenode_cache.invalidate(cls._meta.label)
-
-    @classmethod
-    @cached_method
     def get_ancestors_pks(cls, node, include_self=True, depth=None):
         """Get the ancestors pks list."""
         options = dict(child_id=node.pk, depth__gte=0 if include_self else 1)
         if depth:
             options["depth__lte"] = depth
-        queryset = cls.objects.filter(**options).order_by('depth')
+        queryset = cls.objects.filter(**options)\
+            .order_by('depth')\
+            .values_list('parent_id', flat=True)
         return list(queryset.values_list("parent_id", flat=True))
 
     @classmethod
-    @cached_method
     def get_descendants_pks(cls, node, include_self=False, depth=None):
         """Get a list containing all descendants."""
         options = dict(parent_id=node.pk, depth__gte=0 if include_self else 1)
         if depth:
             options.update({'depth__lte': depth})
-        queryset = cls.objects.filter(**options)
-        return list(queryset.values_list("child_id", flat=True))
+        queryset = cls.objects.filter(**options)\
+            .order_by('depth')\
+            .values_list('child_id', flat=True)
+        return queryset
 
     @classmethod
-    @cached_method
     def get_root(cls, node):
         """Get the root node pk for the current node."""
         queryset = cls.objects.filter(child=node).order_by('-depth')
         return queryset.firts().parent if queryset.count() > 0 else None
 
     @classmethod
-    @cached_method
     def get_depth(cls, node):
         """Get the node depth (how deep the node is in the tree)."""
         result = cls.objects.filter(child__pk=node.pk).aggregate(
@@ -104,7 +109,6 @@ class ClosureModel(models.Model):
         return result if result is not None else 0
 
     @classmethod
-    @cached_method
     def get_level(cls, node):
         """Get the node level (starting from 1)."""
         return cls.objects.filter(child__pk=node.pk).aggregate(
@@ -116,8 +120,6 @@ class ClosureModel(models.Model):
         """Add a node to a Closure table."""
         # Call bulk_create passing a single object
         cls.objects.bulk_create([node], batch_size=1000)
-        # Clear cache
-        cls.clear_cache()
 
     @classmethod
     @transaction.atomic
@@ -132,13 +134,12 @@ class ClosureModel(models.Model):
     @transaction.atomic
     def delete_all(cls):
         """Clear the Closure Table."""
-        # Clear cache
-        cls.clear_cache()
         cls.objects.all().delete()
 
     def save(self, force_insert=False, *args, **kwargs):
         """Save method."""
-        super().save(force_insert, *args, **kwargs)
-        self._meta.model.clear_cache()
+        with (disable_signals(pre_save, self._meta.model),
+              disable_signals(post_save, self._meta.model)):
+            super().save(force_insert, *args, **kwargs)
 
 # The End
