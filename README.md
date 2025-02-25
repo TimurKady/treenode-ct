@@ -32,6 +32,7 @@ For more information on migrating from the **django-treenode** package and upgra
 Full documentation:
 Import and export:
 Migration and upgrade guide:
+
 ---
 
 ## License
