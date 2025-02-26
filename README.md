@@ -27,13 +27,17 @@ This is currently the most productive solution for working with hierarchical dat
 
 For more information on migrating from the **django-treenode** package and upgrading to version 2.0, see [below](#migration-guide).
 
+---
+
 ## Usage
 
-Full documentation:
+Full documentation: 
 
 Import and export:
 
 Migration and upgrade guide:
+
+---
 
 ## License
 Released under [MIT License](https://github.com/TimurKady/django-fast-treenode/blob/main/LICENSE).
