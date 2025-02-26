@@ -11,8 +11,6 @@ However, this application has a number of undeniable shortcomings:
 
 That is, an excellent debut idea, in my humble opinion, should have been improved.
 
----
-
 ### The Development of the Idea
 My idea was to solve these problems by combining the adjacency list with the Closure Table. Main advantages:
 * the Closure Model is generated automatically;
@@ -26,8 +24,6 @@ My idea was to solve these problems by combining the adjacency list with the Clo
 
 Of course, at large levels of nesting, the use of the Closure Table leads to an increase in resource costs. However, the combined approach still outperforms both the original application and other available Django solutions in terms of performance, especially in large trees with over 100k nodes.
 
----
-
 ### The Theory
 You can get a basic understanding of what is a **Closure Table** from:
 * [presentation](https://www.slideshare.net/billkarwin/models-for-hierarchical-data) by **Bill Karwin**;
@@ -35,8 +31,6 @@ You can get a basic understanding of what is a **Closure Table** from:
 * [article](https://towardsdatascience.com/closure-table-pattern-to-model-hierarchies-in-nosql-c1be6a87e05b) by **Andriy Zabavskyy**.
 
 You can easily find additional information on your own on the Internet.
-
----
 
 ### The First Implementation
 The first version of the package was released in January 2023 and underwent continuous improvements over the following year and a half. It demonstrated that leveraging two models—one implementing the **Adjacency List** and the other implementing the **Closure Table**—offers several key advantages:
@@ -47,10 +41,7 @@ The first version of the package was released in January 2023 and underwent cont
 
 However, this version also had some limitations. First, queries could have been further optimized through the use of **JOIN operations**, which were not fully utilized. Second, the caching system required enhancements, as numerous small queries quickly filled the cache, leading to excessive load.
 
----
-
 ### The Second Version
-
 The next version of the package, released in early 2025, is a complete redesign focused primarily on performance optimization. Key improvements include:
 
 1. **Optimized database queries.**  
@@ -67,10 +58,7 @@ The next version of the package, released in early 2025, is a complete redesign 
 
 Additionally, the package includes a **built-in Select2 widget**, enabling seamless integration of hierarchical structures within the Django admin interface while supporting arbitrary levels of nesting.
 
----
-
 ### The Development Plan
-
 The latest version provides optimized database operations, an improved caching mechanism, and improved integration capabilities, making it a **robust and efficient choice** for handling tree structures. But the **django-fast-treenode** package will continue to evolve from its original concept — combining the benefits of the **Adjacency List** and **Closure Table** models — into a high-performance solution for managing and visualizing hierarchical data in Django projects.
 
 The focus is on **speed, usability, and flexibility**. In future versions, I plan to implement:  
@@ -103,5 +91,3 @@ Enabling tree structures to function without a strict dependency on Django.
 
 Stay tuned for updates!
 Your wishes, objections, comments are welcome.
-
----

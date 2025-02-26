@@ -62,6 +62,8 @@ class TreeNodeTreeMixin(models.Model):
             node_dict['id'] = node.id
             node_dict['tn_parent'] = node.tn_parent_id
             node_dict['tn_priority'] = node.tn_priority
+            node_dict['level'] = node.depth
+            node_dict['path'] = node.get_breadcrumbs('tn_priority')
 
             # Добавляем остальные поля модели.
             # Перебираем все поля, полученные через _meta.get_fields()
@@ -110,33 +112,6 @@ class TreeNodeTreeMixin(models.Model):
             else:
                 # If there is no parent, this is the root node of the tree
                 tree.append(node_dict)
-
-        def assign_level_and_path(node, level, path):
-            """
-            Get path and level.
-
-            Recursively assigns nodes a level and collects a materialized
-            path based on tn_priority.
-            :param node: a dictionary representing the current node
-            :param level: the current level of the node
-            :param path: the accumulated list of tn_priority from the root
-            to the parent node
-            """
-            node['level'] = level
-            # Create a new path by adding the tn_priority of the current node
-            current_path = path + [node['tn_priority']]
-            # Store the materialized path in the node
-            node['path'] = current_path
-
-            # Recursively process all children
-            for child in node['children']:
-                assign_level_and_path(child, level + 1, current_path)
-
-        # For all root nodes that have no level set, run a recursive
-        # assignment
-        for root in tree:
-            if root['level'] is None:
-                assign_level_and_path(root, 0, [])
 
         return tree
 
@@ -256,7 +231,6 @@ class TreeNodeTreeMixin(models.Model):
     @cached_method
     def get_tree_display(cls, symbol="&mdash;"):
         """Get a multiline string representing the model tree."""
-        display_field = cls.treenode_display_field
         # Load the tree with the required preloads and depth annotation.
         queryset = cls.objects.all()\
             .prefetch_related("tn_children")\
@@ -267,10 +241,9 @@ class TreeNodeTreeMixin(models.Model):
         sorted_nodes = cls._sort_node_list(nodes)
         result = []
         for node in sorted_nodes:
-            value = getattr(node, display_field) if display_field else str(node)
             # Insert an indent proportional to the depth of the node
             indent = symbol * node.depth
-            result.append(indent + value)
+            result.append(indent + str(node))
         return result
 
     @classmethod
@@ -307,7 +280,6 @@ class TreeNodeTreeMixin(models.Model):
         {% endfor %}
 
         """
-        display_field = cls.treenode_display_field
         # Load the tree with the required preloads and depth annotation.
         queryset = cls.objects.all()\
             .prefetch_related("tn_children")\
@@ -322,7 +294,7 @@ class TreeNodeTreeMixin(models.Model):
 
         for i, node in enumerate(sorted_nodes):
             # Get the value to display the node
-            value = getattr(node, display_field) if display_field else str(node)
+            value = str(node)
             # Determine if there are descendants (use prefetch_related to avoid
             # additional queries)
             value_open = len(node.tn_children.all()) > 0
@@ -373,15 +345,8 @@ class TreeNodeTreeMixin(models.Model):
         Collect the materialized path without accessing the DB and perform
         sorting
         """
-
-        def get_path(node, path=""):
-            """Calculate the materialized path."""
-            # Add the current priority to the beginning of the path
-            path = to_base32(node.tn_priority).rjust(6, '0') + path
-            return get_path(node.tn_parent, path) if node.tn_parent else path
-
         # Create a list of tuples: (node, materialized_path)
-        nodes_with_path = [(node, get_path(node)) for node in nodes]
+        nodes_with_path = [(node, node.tn_order) for node in nodes]
         # Sort the list by the materialized path
         nodes_with_path.sort(key=lambda tup: tup[1])
         # Extract sorted nodes

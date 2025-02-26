@@ -8,7 +8,7 @@ Email: timurkady@yandex.com
 """
 
 from django.db import models
-from ...cache import cached_method
+from ...cache import cached_method, treenode_cache
 from ...utils.base32 import to_base36
 
 
@@ -17,9 +17,26 @@ class TreeNodeNodeMixin(models.Model):
 
     @cached_method
     def get_breadcrumbs(self, attr='pk'):
-        """Get the breadcrumbs to current node (self, included)."""
+        """Optimized breadcrumbs retrieval with direct cache check."""
         if attr not in self._meta.get_fields():
             raise ValueError(f"Invalid attribute name: {attr}")
+
+        # Easy logics for roots
+        if self.tn_parent is None:
+            return [getattr(self, attr)]
+
+        # Generate parents cache key
+        cache_key = treenode_cache.generate_cache_key(
+            self._meta.label,
+            self.get_breadcrumbs.__name__,
+            self.tn_parent.pk,
+            attr
+        )
+
+        # Try get value from cache
+        breadcrumbs = treenode_cache.get(cache_key)
+        if breadcrumbs is not None:
+            return breadcrumbs + [getattr(self, attr)]
 
         queryset = self.get_ancestors_queryset(include_self=True).only(attr)
         return [getattr(item, attr) for item in queryset]

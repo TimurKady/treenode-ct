@@ -1,161 +1,109 @@
-/* 
-TreeNode Select2 Widget
-
-This script enhances the Select2 dropdown widget for hierarchical data 
-representation in Django admin. It supports AJAX data fetching and ensures 
-a structured tree-like display.
-
-Features:
-- Dynamically initializes Select2 on elements with the class `tree-widget`.
-- Retrieves data via AJAX and displays it with proper indentation.
-- Supports dark mode and automatically applies theme styling.
-- Handles parent-child relationships and updates node priorities.
-
-Version: 2.0.0
-Author: Timur Kady
-Email: timurkady@yandex.com
-*/
-
-
 (function ($) {
     "use strict";
 
     /**
-     * Initializes Select2 on all elements with the class "tree-widget".
-     * Ensures proper AJAX data fetching and hierarchical display.
+     * Инициализация Select2 для элементов с классом "tree-widget".
+     * Теперь в AJAX-запросе передаются параметры:
+     * - q: поисковый запрос
+     * - model: имя модели (из data-forward)
+     * - selected_id: текущий выбранный или reference‑узел (если selected_id не установлен)
+     * - direction: направление загрузки ("center" или "down")
+     * - limit: количество узлов для загрузки
+     *
+     * Если сервер возвращает reference_id и selected_id ещё не задан,
+     * то widget обновляет свой data("selected") – это служит опорой для следующих запросов.
      */
     function initializeSelect2() {
         $(".tree-widget").each(function () {
             var $widget = $(this);
-            var url = $widget.data("url"); // Fetch the data URL for AJAX requests
+            var url = $widget.data("url");
+            // Берем начальное значение выбранного узла из data-selected, если оно установлено
+            var selectedId = $widget.data("selected") || null;
+            var limit = 10;  // Количество узлов для загрузки
 
             if (!url) {
                 console.error("Error: Missing data-url for", $widget.attr("id"));
                 return;
             }
 
-            // Initialize Select2 with AJAX support
             $widget.select2({
                 ajax: {
                     url: url,
                     dataType: "json",
-                    delay: 250, // Introduces a delay to avoid excessive API calls
+                    delay: 250,
                     data: function (params) {
-                        var forwardData = $widget.data("forward") || {}; // Retrieve forwarded model data
+                        var forwardData = $widget.data("forward") || {};
+                        // При каждом запросе используем текущее значение выбранного узла (если оно обновилось)
+                        var currentSelectedId = $widget.data("selected") || selectedId;
+                        // Используем параметр params.page для определения направления
+                        // Если params.page существует, то это "down", иначе "center".
+                        var direction = params.page ? "down" : "center";
                         return {
-                            q: params.term, // Search query parameter
-                            model: forwardData.model || null, // Pass the model name
+                            q: params.term,                // Поисковый запрос
+                            model: forwardData.model || null,
+                            selected_id: currentSelectedId, // Отправляем текущий (или reference) узел
+                            direction: direction,
+                            limit: limit
                         };
                     },
                     processResults: function (data) {
-                        if (!data.results) {
-                            return { results: [] }; // Return an empty array if no results exist
+                        // Если узел не выбран, обновляем data("selected") из reference_id сервера.
+                        if (!$widget.data("selected") && data.reference_id) {
+                            $widget.data("selected", data.reference_id);
                         }
                         return { results: data.results };
-                    },
+                    }
                 },
-                minimumInputLength: 0, // Allows opening the dropdown without typing
-                allowClear: true, // Enables the "clear selection" button
-                width: "100%", // Expands the dropdown to fit the parent container
-                templateResult: formatTreeResult, // Custom rendering function for hierarchical display
+                minimumInputLength: 0,
+                allowClear: true,
+                width: "100%",
+                templateResult: formatTreeResult,
+                templateSelection: formatTreeSelection,
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
             });
 
-            // Immediately apply theme styling after Select2 initialization
-            var select2Instance = $widget.data("select2");
-            if (select2Instance && isDarkTheme()) {
-                select2Instance.$container
-                    .find(".select2-selection--single")
-                    .addClass("dark-theme"); // Apply dark mode styling if enabled
-            }
+            // Обработка прокрутки для ленивой загрузки:
+            // При приближении к концу списка триггерим дополнительный запрос.
+            $widget.on("select2:open", function () {
+                $(".select2-results__options").on("scroll", function () {
+                    var $results = $(this);
+                    var scrollBottom = $results.prop("scrollHeight") - $results.scrollTop() - $results.innerHeight();
+
+                    if (scrollBottom < 50) {
+                        // Триггерим запрос с параметром page:true для загрузки "down"
+                        $widget.select2("trigger", "query", { term: "", page: true });
+                    }
+                });
+            });
         });
     }
 
     /**
-     * Checks whether dark mode is enabled.
-     * It relies on the presence of the `data-theme="dark"` attribute on the <html> tag.
-     * @returns {boolean} - True if dark mode is active, false otherwise.
-     */
-    function isDarkTheme() {
-        return document.documentElement.getAttribute("data-theme") === "dark";
-    }
-
-    /**
-     * Applies or removes the `.dark-theme` class to the Select2 dropdown and container.
-     * Ensures the dropdown styling follows the selected theme.
-     */
-    function applyTheme() {
-        var dark = isDarkTheme(); // Check if dark mode is enabled
-        var $dropdown = $(".select2-container--open .select2-dropdown"); // Get the currently open dropdown
-        var $container = $(".select2-container--open .select2-selection--single"); // Get the selection box
-
-        if (dark) {
-            $dropdown.addClass("dark-theme");
-            $container.addClass("dark-theme");
-        } else {
-            $dropdown.removeClass("dark-theme");
-            $container.removeClass("dark-theme");
-        }
-    }
-
-    /**
-     * Formats each result in the Select2 dropdown to visually represent hierarchy.
-     * Adds indentation based on node depth and assigns folder/file icons.
-     * @param {Object} result - A single result object from the AJAX response.
-     * @returns {jQuery} - A formatted span element with the tree structure.
+     * Форматирование результата для отображения дерева.
+     * Добавляет отступ в зависимости от уровня и иконку.
      */
     function formatTreeResult(result) {
         if (!result.id) {
-            return result.text; // Return plain text for placeholder options
+            return result.text;
         }
-        var level = result.level || 0; // Retrieve node depth (default: 0)
-        var is_leaf = result.is_leaf || false; // Determine if it's a leaf node
-        var indent = "&nbsp;&nbsp;".repeat(level); // Create indentation based on depth
-        var icon = is_leaf ? "📄 " : "📂 "; // Use 📄 for leaves, 📂 for parent nodes
-        return $("<span>" + indent + icon + result.text + "</span>"); // Return formatted text
+        var level = result.level || 0;
+        var isLeaf = result.is_leaf || false;
+        var indent = "&nbsp;&nbsp;".repeat(level);
+        var icon = isLeaf ? "📄 " : "📂 ";
+        return $("<span>" + indent + icon + result.text + "</span>");
     }
 
     /**
-     * Binds event listeners and initializes Select2.
-     * Ensures correct theme application on page load and during interactions.
+     * Форматирование выбранного элемента.
      */
+    function formatTreeSelection(result) {
+        return result.text || "";
+    }
+
     $(document).ready(function () {
         initializeSelect2();
-        applyTheme();
-
-        // When a Select2 dropdown opens, update its theme
-        $(document).on("select2:open", function () {
-            applyTheme();
-        });
-
-        // When the theme toggle button is clicked, reapply the theme
-        $(document).on("click", ".theme-toggle", function () {
-            applyTheme();
-        });
-
-        // When a parent changes, get the number of its children and set tn_priority
-        $("#id_tn_parent").on("change", function () {
-            var parentId = $(this).val();
-            var model = $(this).data("forward") ? $(this).data("forward").model : null;
-
-            if (!parentId || !model) {
-                console.log("No parent selected or model is missing.");
-                return;
-            }
-
-            $.ajax({
-                url: "/treenode/get-children-count/",
-                data: { parent_id: parentId, model: model },
-                dataType: "json",
-                success: function (response) {
-                    if (response.children_count !== undefined) {
-                        $("#id_tn_priority").val(response.children_count);  // Set the value
-                    }
-                },
-                error: function () {
-                    console.error("Failed to fetch children count.");
-                }
-            });
-        });
     });
 
 })(django.jQuery || window.jQuery);

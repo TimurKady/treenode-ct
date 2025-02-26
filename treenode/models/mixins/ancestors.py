@@ -8,7 +8,7 @@ Email: timurkady@yandex.com
 """
 
 from django.db import models
-from treenode.cache import treenode_cache, cached_method
+from ...cache import treenode_cache, cached_method
 
 
 class TreeNodeAncestorsMixin(models.Model):

@@ -57,10 +57,8 @@ class TreeWidget(forms.Select):
                 raise ValueError("TreeWidget: model not passed or not defined")
 
             try:
-                label = model._meta.app_label
-                model_name = model._meta.model_name
-                model_label = f"{label}.{model_name}"
-                attrs["data-forward"] = f'{{"model": "{model_label}"}}'
+                label = model._meta.label
+                attrs["data-forward"] = f'{{"model": "{label}"}}'
             except AttributeError as e:
                 raise ValueError(
                     "TreeWidget: model object is not a valid Django model"
