@@ -14,22 +14,24 @@ Email: kaduevtr@gmail.com
 
 import os
 import importlib
-import numpy as np
 from datetime import datetime
 from django.contrib import admin
-from django.http import HttpResponseRedirect
+from django.contrib import messages
 from django.contrib.admin.views.main import ChangeList
+from django.core.serializers import serialize, deserialize
 from django.db import models
+from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
+from django.shortcuts import resolve_url
 from django.urls import path
 from django.utils.encoding import force_str
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
-from django.contrib import messages
-from django.shortcuts import resolve_url
+
 
 from .forms import TreeNodeForm
 from .widgets import TreeWidget
+from .cache import treenode_cache
 
 import logging
 
@@ -62,13 +64,28 @@ class SortedChangeList(ChangeList):
         # Populate self.result_list with objects from the DB.
         super().get_results(request)
         result_list = self.result_list
-        # Extract tn_order values from each object.
-        tn_orders = np.array([obj.tn_order for obj in result_list])
-        # Get sorted indices based on tn_order (ascending order).
-        # Reorder the original result_list based on the sorted indices.
-        self.result_list = [
-            result_list[int(i)] for i in np.argsort(tn_orders)
-        ]
+        result_list_pks = ",".join(map(str, [obj.pk for obj in result_list]))
+
+        cache_key = treenode_cache.generate_cache_key(
+            self.model.label,
+            self.get_results.__name__,
+            id(self.__class__),
+            result_list_pks
+        )
+
+        json_str = treenode_cache.get(cache_key)
+        if json_str:
+            sorted_results = [
+                obj.object for obj in deserialize("json", json_str)
+            ]
+            self.result_list = sorted_results
+            return
+
+        sorted_result = self.model._sort_node_list(result_list)
+        json_str = serialize("json", sorted_result)
+        treenode_cache.set(cache_key, json_str)
+
+        self.result_list = sorted_result
 
 
 class TreeNodeAdminModel(admin.ModelAdmin):
@@ -104,6 +121,30 @@ class TreeNodeAdminModel(admin.ModelAdmin):
             'admin/js/jquery.init.js',
             'treenode/js/treenode_admin.js',
         )
+
+    def drag_handle(self, obj):
+        """Display an empty column with an icon for future drag-and-drop."""
+        icon = "&nbsp;"
+        return mark_safe(
+            f'<span class="drag-handle" '
+            f'style="cursor: grab; opacity: 0.25;">'
+            f'{icon}</span>'
+        )
+
+    drag_handle.short_description = ""
+
+    def toggle_children(self, obj):
+        """Добавление кнопки для открытия/закрытия поддерева, если есть дети."""
+        icon = "&nbsp;"
+        if obj.children.exists():
+            return mark_safe(
+                f'<button class="toggle-children" '
+                f'data-node-id="{obj.pk}" '
+                f'style="cursor: pointer;">{icon}'
+                f'</button>')
+        return ""
+
+    toggle_children.short_description = ""
 
     def __init__(self, model, admin_site):
         """Init method."""

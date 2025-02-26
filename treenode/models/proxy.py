@@ -24,7 +24,7 @@ from django.db.models.signals import pre_save, post_save
 from .factory import TreeFactory
 import treenode.models.mixins as mx
 from ..managers import TreeNodeModelManager
-from ..cache import treenode_cache
+from ..cache import treenode_cache, cached_method
 from ..signals import disable_signals
 import logging
 
@@ -254,5 +254,20 @@ class TreeNodeModel(
 
         return parent, priority
 
+    @classmethod
+    @cached_method
+    def _sort_node_list(cls, nodes):
+        """
+        Sort list of nodes by materialized path oreder.
+
+        Collect the materialized path without accessing the DB and perform
+        sorting
+        """
+        # Create a list of tuples: (node, materialized_path)
+        nodes_with_path = [(node, node.tn_order) for node in nodes]
+        # Sort the list by the materialized path
+        nodes_with_path.sort(key=lambda tup: tup[1])
+        # Extract sorted nodes
+        return [tup[0] for tup in nodes_with_path]
 
 # The end

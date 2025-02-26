@@ -23,7 +23,7 @@ Email: timurkady@yandex.com
 from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
-import numpy as np
+from django.core.serializers import serialize, deserialize
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
 
@@ -152,23 +152,25 @@ class TreeNodeAutocompleteView(View):
             self._meta.label,
             self.get_sorted_queryset.__name__,
             id(self.__class__),
-            q
+            str(q)
         )
 
-        sorted_queryset = treenode_cache.get(cache_key)
-        if sorted_queryset is not None:
+        json_str = treenode_cache.get(cache_key)
+        if json_str:
+            sorted_queryset = [
+                obj.object for obj in deserialize("json", json_str)
+            ]
             return sorted_queryset
 
         queryset = model.objects.filter(name__icontains=q)
-        qs = list(queryset)
-        if not qs:
+        queryset_list = list(queryset)
+        if not queryset_list:
             return JsonResponse({"results": []})
 
-        tn_orders = np.array([node.tn_order for node in qs])
-        sorted_indices = np.argsort(tn_orders)
-        sorted_queryset = [qs[int(idx)] for idx in sorted_indices]
-
+        sorted_queryset = model._sort_node_list(queryset_list)
+        json_str = serialize("json", sorted_queryset)
         treenode_cache.set(cache_key, sorted_queryset)
+
         return sorted_queryset
 
 

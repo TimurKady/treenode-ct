@@ -11,10 +11,8 @@ import json
 from django.db import models, transaction
 from collections import OrderedDict
 from django.core.serializers.json import DjangoJSONEncoder
-from django.core.serializers.json import DjangoJSONDecoder
 
 from ...cache import cached_method
-from ...utils.base32 import to_base32
 
 
 class TreeNodeTreeMixin(models.Model):
@@ -215,16 +213,10 @@ class TreeNodeTreeMixin(models.Model):
         Takes a JSON-compatible string and decodes it into a tree structure.
         """
         try:
-            # Decode JSON string with DjangoJSONDecoder to handle dates
-            # and other things correctly
-            tree_data = json.loads(json_str, cls=DjangoJSONDecoder)
-        except Exception as e:
+            tree_data = json.loads(json_str)
+        except json.JSONDecodeError as e:
             raise ValueError(f"Error decoding JSON: {e}")
 
-        # Additional tree_data validation may be added here in future versions.
-
-        # Call a method that takes a tree as a list of dictionaries and
-        # performs the update and creation.
         cls.load_tree(tree_data)
 
     @classmethod
@@ -336,20 +328,5 @@ class TreeNodeTreeMixin(models.Model):
         """Delete the whole tree for the current node class."""
         cls.clear_cache()
         cls.objects.all().delete()
-
-    @classmethod
-    def _sort_node_list(cls, nodes):
-        """
-        Sort list of nodes by materialized path oreder.
-
-        Collect the materialized path without accessing the DB and perform
-        sorting
-        """
-        # Create a list of tuples: (node, materialized_path)
-        nodes_with_path = [(node, node.tn_order) for node in nodes]
-        # Sort the list by the materialized path
-        nodes_with_path.sort(key=lambda tup: tup[1])
-        # Extract sorted nodes
-        return [tup[0] for tup in nodes_with_path]
 
 # The end

@@ -212,8 +212,8 @@ def cached_method(func):
             label,
             func.__name__,
             unique_id,
-            args,
-            kwargs
+            *args,
+            **kwargs
         )
 
         # Retrieving from cache

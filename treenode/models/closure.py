@@ -98,7 +98,7 @@ class ClosureModel(models.Model):
     def get_root(cls, node):
         """Get the root node pk for the current node."""
         queryset = cls.objects.filter(child=node).order_by('-depth')
-        return queryset.firts().parent if queryset.count() > 0 else None
+        return queryset.first().parent if queryset.count() > 0 else None
 
     @classmethod
     def get_depth(cls, node):
