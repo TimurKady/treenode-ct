@@ -16,13 +16,11 @@ import importlib
 from django.contrib import admin
 from django.db import models
 from django.http import HttpResponseRedirect
-from django.utils.encoding import force_str
 from django.utils.safestring import mark_safe
-from django.utils.translation import gettext_lazy as _
 
 
 from .changelist import SortedChangeList
-from .import_export import ImportExportMixin
+from .import_export import AdminViewsMixin
 from ..forms import TreeNodeForm
 from ..widgets import TreeWidget
 
@@ -31,7 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class TreeNodeAdminModel(ImportExportMixin, admin.ModelAdmin):
+class TreeNodeAdminModel(AdminViewsMixin, admin.ModelAdmin):
     """
     TreeNodeAdmin class.
 
@@ -65,29 +63,25 @@ class TreeNodeAdminModel(ImportExportMixin, admin.ModelAdmin):
             'treenode/js/treenode_admin.js',
         )
 
-    def drag_handle(self, obj):
+    def drag(self, obj):
         """Display an empty column with an icon for future drag-and-drop."""
-        icon = "&nbsp;"
-        return mark_safe(
-            f'<span class="drag-handle" '
-            f'style="cursor: grab; opacity: 0.25;">'
-            f'{icon}</span>'
-        )
+        icon = "↕"  # &nbsp;"
+        return mark_safe(f'<span class="drag-handle">{icon}</span>')
 
-    drag_handle.short_description = ""
+    drag.short_description = ""
 
-    def toggle_children(self, obj):
+    def toggle(self, obj):
         """Добавление кнопки для открытия/закрытия поддерева, если есть дети."""
-        icon = "&nbsp;"
+        icon = "►"  # ▼ - for open; reserve set: 📁 📂
         if obj.children.exists():
             return mark_safe(
                 f'<button class="toggle-children" '
                 f'data-node-id="{obj.pk}" '
-                f'style="cursor: pointer;">{icon}'
+                f'{icon}'
                 f'</button>')
-        return ""
+        return "<p>&nbsp;</p>"
 
-    toggle_children.short_description = ""
+    toggle.short_description = ""
 
     def __init__(self, model, admin_site):
         """Init method."""
@@ -120,46 +114,67 @@ not installed. Export and import functions are disabled.")
             self.TreeNodeExporter = None
 
     def get_queryset(self, request):
-        """Override get_queryset to simply return an optimized queryset."""
-        queryset = super().get_queryset(request)
-        # If a search term is present, leave the queryset as is.
-        if request.GET.get("q"):
-            return queryset
-        return queryset.select_related('tn_parent')
+        """
+        Get QuerySet.
+
+        Redefine the query so that by default only root nodes (nodes with
+        tn_parent=None) are loaded. If there is a search query (parameter "q"),
+        return the full list.
+        """
+        qs = super().get_queryset(request)
+        if not request.GET.get("q"):
+            qs = qs.filter(tn_parent__isnull=True)
+        field_name = getattr(self.model, 'treenode_display_field')
+        if not field_name:
+            return qs.none()
+        return qs.select_related('tn_parent')\
+            .filter(**{f"{field_name}__icontains: q"})
+
+    def get_form(self, request, obj=None, **kwargs):
+        """Get Form method."""
+        form = super().get_form(request, obj, **kwargs)
+        if "tn_parent" in form.base_fields:
+            form.base_fields["tn_parent"].widget = TreeWidget()
+        return form
 
     def get_search_fields(self, request):
         """Return the correct search field."""
         return [self.model.treenode_display_field]
 
     def get_list_display(self, request):
-        """
-        Generate list_display dynamically.
+        """Generate list_display dynamically with user-defined preferences."""
+        change_view_cols = (self.drag, self.toggle)
+        user_list_display = list(super().get_list_display(request))
 
-        Return list or tuple of field names that will be displayed in the
-        change list view.
-        """
-        change_view_cols = tuple(self.drag_handle, self.toggle_children)
-        base_list_display = list(super().get_list_display(request))
+        treenode_display_field = getattr(
+            self.model,
+            'treenode_display_field',
+            '__str__'
+        )
 
-        def treenode_field_display(obj):
+        def treenode_field(obj):
             return self._get_treenode_field_display(request, obj)
 
-        verbose_name = self.model._meta.verbose_name
-        treenode_field_display.short_description = verbose_name
-        treenode_field_display.allow_tags = True
+        treenode_field.short_description = self.model._meta.verbose_name
+        treenode_field.allow_tags = True
 
-        if len(base_list_display) == 1 and base_list_display[0] == '__str__':
-            base_list_display[2] = treenode_field_display
-            result = tuple(treenode_field_display,)
+        # If the custom list is empty or contains only '__str__'
+        if not user_list_display or user_list_display == ['__str__']:
+            result = (treenode_field,)
         else:
-            treenode_display_field = getattr(
-                self.model,
-                'treenode_display_field',
-                '__str__'
-            )
-            if base_list_display[0] == treenode_display_field:
-                base_list_display.pop(0)
-            result = tuple(treenode_field_display,) + tuple(base_list_display)
+            # Remove `treenode_display_field` if it is the first one and
+            # insert `treenode_field`
+            if user_list_display[0] == treenode_display_field:
+                clean_list = user_list_display[1:]
+            else:
+                clean_list = user_list_display
+
+            # Гарантируем, что treenode_field есть в списке
+            if treenode_field not in clean_list:
+                clean_list.insert(0, treenode_field)
+
+            result = tuple(clean_list)
+
         return change_view_cols + result
 
     def get_changelist(self, request):
@@ -202,62 +217,53 @@ not installed. Export and import functions are disabled.")
         """Get Ordering."""
         return None
 
-    def _get_row_display(self, obj):
-        """Return row display for accordion mode."""
-        field = getattr(self.model, 'treenode_display_field')
-        return force_str(getattr(obj, field, obj.pk))
+    # ------------------------------------------------------------------------
 
     def _get_treenode_field_display(self, request, obj):
-        """Define how to display nodes depending on the mode."""
-        display_mode = self.treenode_display_mode
-        if display_mode == self.TREENODE_DISPLAY_MODE_ACCORDION:
-            return self._display_with_accordion(obj)
-        elif display_mode == self.TREENODE_DISPLAY_MODE_BREADCRUMBS:
-            return self._display_with_breadcrumbs(obj)
-        elif display_mode == self.TREENODE_DISPLAY_MODE_INDENTATION:
-            return self._display_with_indentation(obj)
-        else:
-            return self._display_with_breadcrumbs(obj)
+        """
+        Return the HTML display of the accordion node.
 
-    def _display_with_accordion(self, obj):
-        """Display a tree in accordion style."""
-        parent = str(obj.tn_parent_id or '')
-        text = self._get_row_display(obj)
+        Modes:
+        - ACCORDION: '&nbsp;' * level + icon + str(node),
+          where icon = "📁 " if obj.is_leaf() returns True, otherwise "📄 ".
+        - BREADCRUMBS: " / ".join(obj.get_breadcrumbs(attr=field)),
+          where field = getattr(self.model, 'treenode_display_field', None)
+          or "tn_priority" if None.
+        - INDENTATION: '&mdash;' * level + str(node)
+        """
+        # Determine the node level
+        level = obj.get_depth()
+
+        mode = self.treenode_display_mode
+        if mode == self.TREENODE_DISPLAY_MODE_ACCORDION:
+            icon = "📁 " if obj.is_leaf() else "📄 "
+            content = "&nbsp;" * level + icon + str(obj)
+        elif mode == self.TREENODE_DISPLAY_MODE_BREADCRUMBS:
+            field = getattr(
+                self.model,
+                'treenode_display_field',
+                None) or "tn_priority"
+            content = " / ".join(obj.get_breadcrumbs(attr=field))
+        elif mode == self.TREENODE_DISPLAY_MODE_INDENTATION:
+            content = "&mdash;" * level + str(obj)
+        else:
+            # Just in case mode is not recognized, then use breadcrumbs
+            field = getattr(
+                self.model,
+                'treenode_display_field',
+                None) or "tn_priority"
+            content = " / ".join(obj.get_breadcrumbs(attr=field))
+
+        parent = str(getattr(obj, "tn_parent_id", "") or "")
         html = (
             f'<div class="treenode-wrapper" '
             f'data-treenode-pk="{obj.pk}" '
-            f'data-treenode-depth="{obj.depth}" '
+            f'data-treenode-depth="{level}" '
             f'data-treenode-parent="{parent}">'
-            f'<span class="treenode-content">{text}</span>'
+            f'<span class="treenode-content">{content}</span>'
             f'</div>'
         )
         return mark_safe(html)
-
-    def _display_with_breadcrumbs(self, obj):
-        """Display a tree as breadcrumbs."""
-        field = getattr(self.model, 'treenode_display_field')
-        if field is not None:
-            obj_display = " / ".join(obj.get_breadcrumbs(attr=field))
-        else:
-            obj_display = obj.get_path(
-                prefix=_("Node "),
-                suffix=" / " + obj.__str__()
-            )
-        display = f'<span class="treenode-breadcrumbs">{obj_display}</span>'
-        return mark_safe(display)
-
-    def _display_with_indentation(self, obj):
-        """Display tree with indents."""
-        indent = '&mdash;' * obj.get_depth()
-        display = f'<span class="treenode-indentation">{indent}</span> {obj}'
-        return mark_safe(display)
-
-    def get_form(self, request, obj=None, **kwargs):
-        """Get Form method."""
-        form = super().get_form(request, obj, **kwargs)
-        if "tn_parent" in form.base_fields:
-            form.base_fields["tn_parent"].widget = TreeWidget()
-        return form
 
 
 # The End

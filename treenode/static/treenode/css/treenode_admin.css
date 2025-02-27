@@ -104,3 +104,16 @@ Email: timurkady@yandex.com
 .dark-theme .treenode-toggle {
     color: #ccc;
 }
+
+.toggle-children {
+    cursor: pointer;
+}
+
+.drag-handle {
+    cursor: grab;
+    opacity: 0.25;
+}
+
+.drag-handle:hover {
+        opacity: 1.0;
+}

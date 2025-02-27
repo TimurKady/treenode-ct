@@ -39,7 +39,8 @@ class TreeNodeTreeMixin(models.Model):
         """
         # If instance is passed, we get all its descendants (including itself)
         if instance:
-            queryset = instance.get_descendants_queryset(include_self=True)
+            queryset = instance.get_descendants_queryset(include_self=True)\
+                .annotate(depth=models.Max("parents_set__depth"))
         else:
             # Load all records at once
             queryset = cls.objects.all()
@@ -60,7 +61,7 @@ class TreeNodeTreeMixin(models.Model):
             node_dict['id'] = node.id
             node_dict['tn_parent'] = node.tn_parent_id
             node_dict['tn_priority'] = node.tn_priority
-            node_dict['level'] = node.depth
+            node_dict['level'] = node.get_depth()
             node_dict['path'] = node.get_breadcrumbs('tn_priority')
 
             # Добавляем остальные поля модели.
