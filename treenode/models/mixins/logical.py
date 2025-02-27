@@ -55,3 +55,5 @@ class TreeNodeLogicalMixin(models.Model):
             # Both objects are roots
             return True
         return (self.tn_parent == target_obj.tn_parent)
+
+# The End

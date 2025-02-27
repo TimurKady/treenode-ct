@@ -64,11 +64,11 @@ class TreeNodeTreeMixin(models.Model):
             node_dict['level'] = node.get_depth()
             node_dict['path'] = node.get_breadcrumbs('tn_priority')
 
-            # Добавляем остальные поля модели.
-            # Перебираем все поля, полученные через _meta.get_fields()
+            # Add the rest of the model fields.
+            # Iterate over all the fields obtained via _meta.get_fields()
             for field in node._meta.get_fields():
-                # Пропускаем поля, которые уже добавлены или не требуются
-                # (например, связь tn_closure или виртуальные связи)
+                # Skipping fields that are already added or not required
+                # (e.g. tn_closure or virtual links)
                 if field.name in [
                         'id', 'tn_parent', 'tn_priority', 'tn_closure',
                         'children']:
@@ -79,8 +79,8 @@ class TreeNodeTreeMixin(models.Model):
                 except Exception:
                     value = None
 
-                # Если поле представляет собой many-to-many – получаем
-                # список идентификаторов связанных объектов
+                # If the field is many-to-many, we get a list of IDs of
+                # related objects
                 if hasattr(value, 'all'):
                     value = list(value.all().values_list('id', flat=True))
 

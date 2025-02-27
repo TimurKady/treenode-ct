@@ -72,3 +72,5 @@ class TreeNodeChildrenMixin(models.Model):
     def get_last_child(self):
         """Get the last child node or None if it has no children."""
         return self.get_children_queryset().last() if self.is_leaf else None
+
+# The End

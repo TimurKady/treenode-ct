@@ -87,3 +87,5 @@ class TreeNodeRootsMixin(models.Model):
         """Return the last root node in the tree or None if it is empty."""
         roots = cls.get_roots_queryset()
         return roots.last() if roots.count() > 0 else None
+
+# The End

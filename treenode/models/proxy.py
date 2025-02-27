@@ -270,4 +270,5 @@ class TreeNodeModel(
         # Extract sorted nodes
         return [tup[0] for tup in nodes_with_path]
 
+
 # The end

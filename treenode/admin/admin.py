@@ -6,7 +6,7 @@ This module provides Django admin integration for the TreeNode model.
 It includes custom tree-based sorting, optimized queries, and
 import/export functionality for hierarchical data structures.
 
-Version: 2.0.11
+Version: 2.1.0
 Author: Timur Kady
 Email: kaduevtr@gmail.com
 """

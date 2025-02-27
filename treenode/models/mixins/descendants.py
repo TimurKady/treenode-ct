@@ -57,3 +57,5 @@ class TreeNodeDescendantsMixin(models.Model):
     def get_descendants_count(self, include_self=False, depth=None):
         """Get the descendants count."""
         return len(self.get_descendants_pks(include_self, depth))
+
+# The End

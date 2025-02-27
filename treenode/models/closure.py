@@ -11,7 +11,7 @@ Features:
 - Implements cached queries for improved performance.
 - Provides bulk operations for inserting, moving, and deleting nodes.
 
-Version: 2.0.11
+Version: 2.1.0
 Author: Timur Kady
 Email: timurkady@yandex.com
 """

@@ -1,25 +1,32 @@
 (function ($) {
     "use strict";
 
-    /**
-     * Инициализация Select2 для элементов с классом "tree-widget".
-     * Теперь в AJAX-запросе передаются параметры:
-     * - q: поисковый запрос
-     * - model: имя модели (из data-forward)
-     * - selected_id: текущий выбранный или reference‑узел (если selected_id не установлен)
-     * - direction: направление загрузки ("center" или "down")
-     * - limit: количество узлов для загрузки
-     *
-     * Если сервер возвращает reference_id и selected_id ещё не задан,
-     * то widget обновляет свой data("selected") – это служит опорой для следующих запросов.
-     */
+/**
+
+Initialize Select2 for elements with class "tree-widget".
+Now the parameters passed in the AJAX request are:
+- q: search query
+- model: model name (from data-forward)
+- selected_id: currently selected or reference node
+  (if selected_id is not set)
+- direction: load direction ("center" or "down")
+- limit: number of nodes to load
+
+If the server returns a reference_id and selected_id is not set yet,
+then widget updates its data("selected") - this serves as a reference for
+the following requests.
+
+Version 2.0.0
+
+*/
+
     function initializeSelect2() {
         $(".tree-widget").each(function () {
             var $widget = $(this);
             var url = $widget.data("url");
-            // Берем начальное значение выбранного узла из data-selected, если оно установлено
+            // Take the initial value of the selected node from data-selected if it is set
             var selectedId = $widget.data("selected") || null;
-            var limit = 10;  // Количество узлов для загрузки
+            var limit = 10;  // Number of nodes to load
 
             if (!url) {
                 console.error("Error: Missing data-url for", $widget.attr("id"));
@@ -30,24 +37,24 @@
                 ajax: {
                     url: url,
                     dataType: "json",
-                    delay: 250,
+                    delay: 500,
                     data: function (params) {
                         var forwardData = $widget.data("forward") || {};
-                        // При каждом запросе используем текущее значение выбранного узла (если оно обновилось)
+                        // For each request, use the current value of the selected node (if it has been updated)
                         var currentSelectedId = $widget.data("selected") || selectedId;
-                        // Используем параметр params.page для определения направления
-                        // Если params.page существует, то это "down", иначе "center".
+                        // Use params.page to determine direction
+                        // If params.page exists, it is "down", otherwise "center".
                         var direction = params.page ? "down" : "center";
                         return {
-                            q: params.term,                // Поисковый запрос
+                            q: params.term,   // Search query
                             model: forwardData.model || null,
-                            selected_id: currentSelectedId, // Отправляем текущий (или reference) узел
+                            selected_id: currentSelectedId, // Send the current (or reference) node
                             direction: direction,
                             limit: limit
                         };
                     },
                     processResults: function (data) {
-                        // Если узел не выбран, обновляем data("selected") из reference_id сервера.
+                        // If the node is not selected, update data("selected") from the server's reference_id.
                         if (!$widget.data("selected") && data.reference_id) {
                             $widget.data("selected", data.reference_id);
                         }
@@ -64,15 +71,15 @@
                 }
             });
 
-            // Обработка прокрутки для ленивой загрузки:
-            // При приближении к концу списка триггерим дополнительный запрос.
+            // Handle scrolling for lazy loading:
+            // When approaching the end of the list, trigger an additional request.
             $widget.on("select2:open", function () {
                 $(".select2-results__options").on("scroll", function () {
                     var $results = $(this);
                     var scrollBottom = $results.prop("scrollHeight") - $results.scrollTop() - $results.innerHeight();
 
                     if (scrollBottom < 50) {
-                        // Триггерим запрос с параметром page:true для загрузки "down"
+                        // Trigger a request with the page:true parameter to load "down"
                         $widget.select2("trigger", "query", { term: "", page: true });
                     }
                 });
@@ -81,9 +88,9 @@
     }
 
     /**
-     * Форматирование результата для отображения дерева.
-     * Добавляет отступ в зависимости от уровня и иконку.
-     */
+    * Formatting the result to display the tree.
+    * Adds indentation depending on the level and an icon.
+    */
     function formatTreeResult(result) {
         if (!result.id) {
             return result.text;
@@ -91,13 +98,13 @@
         var level = result.level || 0;
         var isLeaf = result.is_leaf || false;
         var indent = "&nbsp;&nbsp;".repeat(level);
-        var icon = isLeaf ? "📄 " : "📂 ";
+        var icon = isLeaf ? "📄 " : "📁 ";
         return $("<span>" + indent + icon + result.text + "</span>");
     }
 
     /**
-     * Форматирование выбранного элемента.
-     */
+    * Format the selected element.
+    */
     function formatTreeSelection(result) {
         return result.text || "";
     }

@@ -10,7 +10,7 @@ Functions:
 - __init__: Initializes the form and filters out invalid parent choices.
 - factory: Dynamically creates a form class for a given TreeNode model.
 
-Version: 2.0.11
+Version: 2.1.0
 Author: Timur Kady
 Email: timurkady@yandex.com
 """
@@ -98,7 +98,7 @@ class TreeNodeForm(forms.ModelForm):
             )
             self.fields["tn_parent"].widget.model = queryset.model
 
-            # Если есть текущее значение, устанавливаем его
+            # If there is a current value, set it
             if self.instance and self.instance.pk and self.instance.tn_parent:
                 self.fields["tn_parent"].initial = self.instance.tn_parent
 

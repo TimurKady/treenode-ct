@@ -56,3 +56,5 @@ class TreeNodeAncestorsMixin(models.Model):
     def get_ancestors_count(self, include_self=True, depth=None):
         """Get the ancestors count."""
         return len(self.get_ancestors_pks(include_self, depth))
+
+# The End

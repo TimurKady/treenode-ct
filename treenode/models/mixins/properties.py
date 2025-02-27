@@ -162,3 +162,5 @@ class TreeNodePropertiesMixin:
     def tn_order(self):
         """Return the materialized path."""
         return self.get_order()
+
+# The End

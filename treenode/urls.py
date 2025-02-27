@@ -8,10 +8,10 @@ autocomplete and retrieving child node counts.
 
 Routes:
 - `tree-autocomplete/`: Returns JSON data for Select2 hierarchical selection.
-- `get-children-count/`: Retrieves the number of children for a given 
+- `get-children-count/`: Retrieves the number of children for a given
   parent node.
 
-Version: 2.0.0
+Version: 2.1.0
 Author: Timur Kady
 Email: timurkady@yandex.com
 """
@@ -32,3 +32,6 @@ urlpatterns = [
         name="get_children_count"
     ),
 ]
+
+
+# The End

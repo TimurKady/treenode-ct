@@ -61,3 +61,5 @@ class SortedChangeList(ChangeList):
         treenode_cache.set(cache_key, json_str)
 
         self.result_list = sorted_result
+
+# The End

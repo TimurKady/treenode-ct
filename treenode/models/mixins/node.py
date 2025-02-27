@@ -197,3 +197,5 @@ class TreeNodeNodeMixin(models.Model):
         """Get the root node pk for the current node."""
         root = self.get_root()
         return root.pk if root else None
+
+# The End

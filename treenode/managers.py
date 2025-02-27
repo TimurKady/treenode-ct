@@ -469,5 +469,4 @@ FROM {table_name}) WHERE name='{table_name}';"
                     f"Autoincrement for {db_engine} is not supported."
                 )
 
-
 # The End

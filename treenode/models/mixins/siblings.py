@@ -86,3 +86,5 @@ class TreeNodeSiblingsMixin(models.Model):
         Method can return the node itself if it was the leftmost sibling.
         """
         return self.get_siblings_queryset().last()
+
+# The End

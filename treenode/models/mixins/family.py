@@ -59,3 +59,5 @@ class TreeNodeFamilyMixin(models.Model):
         the descendants, in tree order.
         """
         return self.get_family_queryset().count()
+
+# The End

@@ -22,3 +22,6 @@ class classproperty(object):
     def __get__(self, instance, owner):
         """Get."""
         return self.getter(owner)
+
+
+# The end

@@ -39,26 +39,28 @@ class TreeNodeAutocompleteView(View):
 
     def get(self, request):
         """
-        Обрабатывает AJAX-запрос для ленивой загрузки узлов дерева.
+        Process an AJAX request to lazily load tree nodes.
 
-        Изменения:
-          1. Если узел не выбран (selected_id отсутствует), возвращаются первые 2*limit узлов.
-          2. Загружается полный список узлов, сортируется по вычисляемому tn_order (через numpy),
-             после чего выбирается нужная порция относительно индекса выбранного узла.
-          3. Для направления "up" и "down" определяется reference-узел, который возвращается в поле reference_id.
-          4. URL остаётся прежним.
-          5. Оптимизация: поскольку tn_order – не поле БД, фильтровать по нему нельзя – поэтому вся выборка происходит в памяти.
-             Если дерево очень большое, стоит задуматься о переходе к материализованному пути.
+        Changes:
+        1. If a node is not selected (selected_id is missing), the first
+           2*limit nodes are returned.
+        2. The full list of nodes is loaded, sorted by the calculated tn_order,
+           and then the required portion is selected relative to the index of
+           the selected node.
+        3. For the "up" and "down" directions, a reference node is determined,
+           which is returned in the reference_id field.
+        4. Optimization: since tn_order is not a DB field, it cannot be filtered
+           by it - so the entire selection occurs in memory.
         """
         # Model
         model_label = request.GET.get("model")
         # Search string
         q = request.GET.get("q", "")
-        # ID текущего узла (если выбран)
+        # ID of the current node (if selected)
         selected_id = request.GET.get("selected_id")
-        # "up", "down" или "center"
+        # "up", "down" or "center"
         direction = request.GET.get("direction", "center")
-        # Количество узлов для загрузки
+        # Number of nodes to load
         limit = int(request.GET.get("limit", 10))
 
         if not model_label:
@@ -75,11 +77,11 @@ class TreeNodeAutocompleteView(View):
                 status=400
             )
 
-        # Загружаем все узлы через кэш
+        # Load all nodes through cache
         sorted_queryset = self.get_sorted_queryset(model, q)
 
         if not selected_id:
-            # Если узел не выбран – возвращаем первые 2*limit узлов
+            # If the node is not selected, return the first 2*limit nodes
             nodes = sorted_queryset[:(2 * limit)]
             reference_node = nodes[-1] if nodes else None
         else:
@@ -91,7 +93,7 @@ class TreeNodeAutocompleteView(View):
                     status=404
                 )
 
-            # Находим индекс выбранного узла в отсортированном списке
+            # Find the index of the selected node in the sorted list
             selected_index = None
             for i, node in enumerate(sorted_queryset):
                 if node.pk == selected_node.pk:
@@ -104,17 +106,20 @@ class TreeNodeAutocompleteView(View):
                 )
 
             if direction == "up":
-                # Узлы с индексами от (selected_index - limit) до selected_index (не включая выбранный)
+                # Nodes with indices from (selected_index - limit) to
+                # selected_index (not including selected)
                 start = max(0, selected_index - limit)
                 nodes = sorted_queryset[start:selected_index]
                 reference_node = nodes[0] if nodes else selected_node
             elif direction == "down":
-                # Узлы с индексами от selected_index+1 до selected_index+limit
+                # Nodes with indices from selected_index+1 to
+                # selected_index + limit
                 end = min(len(sorted_queryset), selected_index + 1 + limit)
                 nodes = sorted_queryset[selected_index + 1:end]
                 reference_node = nodes[-1] if nodes else selected_node
             else:  # center
-                # Узлы вокруг выбранного: от (selected_index - limit) до (selected_index + limit)
+                # Nodes around selected: from (selected_index - limit) to
+                # (selected_index + limit)
                 start = max(0, selected_index - limit)
                 end = min(len(sorted_queryset), selected_index + limit + 1)
                 nodes = sorted_queryset[start:end]
@@ -173,33 +178,4 @@ class TreeNodeAutocompleteView(View):
 
         return sorted_queryset
 
-
-class GetChildrenCountView(View):
-    """Return the number of children for a given parent node."""
-
-    def get(self, request):
-        """Get method."""
-        parent_id = request.GET.get("parent_id")
-        model_label = request.GET.get("model")  # Получаем модель
-
-        if not model_label or not parent_id:
-            return JsonResponse({"error": "Missing parameters"}, status=400)
-
-        try:
-            model = apps.get_model(model_label)
-        except LookupError:
-            return JsonResponse(
-                {"error": f"Invalid model: {model_label}"},
-                status=400
-            )
-
-        try:
-            parent_node = model.objects.get(pk=parent_id)
-            children_count = parent_node.get_children_count()
-        except ObjectDoesNotExist:
-            return JsonResponse(
-                {"error": "Parent node not found"},
-                status=404
-            )
-
-        return JsonResponse({"children_count": children_count})
+# The End
