@@ -66,20 +66,20 @@ class TreeNodeAdminModel(AdminViewsMixin, admin.ModelAdmin):
     def drag(self, obj):
         """Display an empty column with an icon for future drag-and-drop."""
         icon = "↕"  # &nbsp;"
-        return mark_safe(f'<span class="drag-handle">{icon}</span>')
+        return mark_safe(f'<span class="treenode-drag-handle">{icon}</span>')
 
     drag.short_description = ""
 
     def toggle(self, obj):
         """Добавление кнопки для открытия/закрытия поддерева, если есть дети."""
-        icon = "►"  # ▼ - for open; reserve set: 📁 📂
+        icon = "▶"  # ▼ - for open; reserve set: 📁 📂
         if obj.children.exists():
             return mark_safe(
-                f'<button class="toggle-children" '
-                f'data-node-id="{obj.pk}" '
+                f'<button class="treenode-toggle" '
+                f'data-node-id="{obj.pk}">'
                 f'{icon}'
                 f'</button>')
-        return "<p>&nbsp;</p>"
+        return '<div class="treenode-space">&nbsp;</div>'
 
     toggle.short_description = ""
 

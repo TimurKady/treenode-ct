@@ -9,7 +9,6 @@ Email: kaduevtr@gmail.com
 
 import os
 from datetime import datetime
-from django.apps import apps
 from django.contrib import admin
 from django.contrib import messages
 from django.core.serializers import serialize, deserialize

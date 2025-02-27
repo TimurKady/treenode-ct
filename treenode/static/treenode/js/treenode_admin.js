@@ -6,166 +6,107 @@ tree structure visualization. It provides expand/collapse functionality
 for hierarchical data representation.
 
 Features:
-- Dynamically detects parent-child relationships in the admin table.
-- Allows nodes to be expanded and collapsed with smooth animations.
-- Saves expanded/collapsed states in localStorage for persistence.
-- Optimizes tree traversal with efficient DOM manipulation.
+- Dynamically generates node displays, preventing an increase in the load
+  on the database.
+- Allows you to expand and collapse nodes.
+- Manage node searches.
 
-Version: 2.0.0
+Version: 2.1.0
 Author: Timur Kady
 Email: timurkady@yandex.com
 */
 
 (function($) {
-    $(document).ready(function() {
-        // Mapping parent node -> list of child nodes
-        var childrenMap = {};
+  // Function for debounce call (execution delay)
+  function debounce(func, wait) {
+    var timeout;
+    return function() {
+      var context = this, args = arguments;
+      clearTimeout(timeout);
+      timeout = setTimeout(function() {
+        func.apply(context, args);
+      }, wait);
+    };
+  }
 
-        // Iterate over all tree nodes to build a mapping of parent-child relationships
-        $('.treenode, .treenode-wrapper').each(function() {
-            var parent = $(this).data('treenode-parent'); // Get parent ID
-            var pk = $(this).data('treenode-pk'); // Get node primary key
-            
-            if (parent) {
-                if (!childrenMap[parent]) {
-                    childrenMap[parent] = [];
-                }
-                childrenMap[parent].push(pk);
+  // Save the original contents of the change_list table (root nodes only)
+  var $tableBody = $('table#result_list tbody');
+  var originalTableHtml = $tableBody.html();
+
+  // Handler for clicking on the toggle button (expand/collapse)
+  $tableBody.on('click', '.treenode-toggle', function(e) {
+    e.preventDefault();
+    var $btn = $(this);
+    var nodeId = $btn.data('node-id');
+
+    // If this node is already expanded, collapse it
+    if ($btn.data('expanded')) {
+      // Remove all rows marked as children of this node
+      $tableBody.find('tr[data-parent-of="' + nodeId + '"]').remove();
+      // Change the icon back to ▶ and reset the flag
+      $btn.html('▶').data('expanded', false);
+    } else {
+      // Node not expanded, make AJAX request to get children
+      $.getJSON('change_list/', { parent_id: nodeId }, function(response) {
+        // Если ответ содержит дочерние узлы
+        if (response.results && response.results.length > 0) {
+          var rowsHtml = '';
+          // For each received node we form a table row
+          $.each(response.results, function(index, node) {
+            // First column: drag handle (icon)
+            var dragCell = '<td class="drag-cell"><span class="treenode-drag-handle">↕</span></td>';
+            // Second column: toggle button if node has children, otherwise empty block
+            var toggleCell = '';
+            if (!node.is_leaf) {
+              toggleCell = '<td class="toggle-cell"><button class="treenode-toggle" data-node-id="' + node.id + '">▶</button></td>';
+            } else {
+              toggleCell = '<td class="toggle-cell"><div class="treenode-space">&nbsp;</div></td>';
             }
+            // Third column: node display (HTML, already with accordion wrapper)
+            var displayCell = '<td class="display-cell">' + node.text + '</td>';
+            // Collect the entire row; add a data attribute so that we can later collapse all children of this node
+            rowsHtml += '<tr data-parent-of="' + nodeId + '">' + dragCell + toggleCell + displayCell + '</tr>';
+          });
+          // Insert new lines immediately after the line of the parent node
+          var $parentRow = $btn.closest('tr');
+          $parentRow.after(rowsHtml);
+          // Update the expand icon and set the "expanded" flag
+          $btn.html('▼').data('expanded', true);
+        }
+      });
+    }
+  });
+
+  // Handler for searching nodes with delay
+  $('input[name="q"]').on('keyup', debounce(function(e) {
+    var query = $.trim($(this).val());
+    // If the search string is empty, return the initial state of change_list (root nodes only)
+    if (query === '') {
+      $tableBody.html(originalTableHtml);
+      return;
+    }
+    // If there is a search query, we make an AJAX request to the endpoint "search/"
+    $.getJSON('search/', { q: query }, function(response) {
+      var rowsHtml = '';
+      if (response.results && response.results.length > 0) {
+        $.each(response.results, function(index, node) {
+          var dragCell = '<td class="drag-cell"><span class="treenode-drag-handle">↕</span></td>';
+          var toggleCell = '';
+          if (!node.is_leaf) {
+            toggleCell = '<td class="toggle-cell"><button class="treenode-toggle" data-node-id="' + node.id + '">▶</button></td>';
+          } else {
+            toggleCell = '<td class="toggle-cell"><div class="treenode-space">&nbsp;</div></td>';
+          }
+          var displayCell = '<td class="display-cell">' + node.text + '</td>';
+          // In the search we consider that all nodes are root (closed)
+          rowsHtml += '<tr>' + dragCell + toggleCell + displayCell + '</tr>';
         });
-
-        // Initialize tree nodes, set up toggles
-        $('.treenode, .treenode-wrapper').each(function() {
-            var $node = $(this);
-            var pk = $node.data('treenode-pk'); // Get current node ID
-            var depth = parseInt($node.data('treenode-depth'), 10) || 0; // Get tree depth level
-            var $tr = $node.closest('tr'); // Find the corresponding row in the table
-            $tr.attr('data-treenode-depth', depth);
-            $tr.attr('data-treenode-pk', pk);
-
-            var $th = $tr.find('th:first');
-            if ($th.find('.treenode-space, .treenode-toggle').length === 0) {
-                var $placeholder = $('<span class="treenode-space"> </span>')
-                    .css('margin-left', (depth * 20) + 'px'); // Indentation based on depth
-                $th.prepend($placeholder);
-            }
-
-            // If node has children, add expand/collapse toggle
-            if (childrenMap[pk]) {
-                var expanded = loadState(pk);
-                var $placeholder = $th.find('.treenode-space');
-                var $toggle = $('<span class="treenode-toggle button"></span>')
-                    .css('margin-left', (depth * 20) + 'px');
-                
-                if (expanded) {
-                    $toggle.addClass('expanded').text('-');
-                } else {
-                    $toggle.addClass('collapsed').text('+');
-                }
-                $placeholder.replaceWith($toggle);
-                
-                if (!expanded) {
-                    collapseNode($tr, true);
-                }
-
-                // Toggle node expansion/collapse on click
-                $toggle.on('click', function() {
-                    if ($(this).hasClass('expanded')) {
-                        collapseNode($tr, false);
-                        $(this).removeClass('expanded').addClass('collapsed').text('+');
-                        saveState(pk, false);
-                    } else {
-                        expandNode($tr);
-                        $(this).removeClass('collapsed').addClass('expanded').text('-');
-                        saveState(pk, true);
-                    }
-                });
-            }
-        });
-
-        // Apply initial collapsed states based on saved preferences
-        function applyCollapsedStates() {
-            $('tr').each(function() {
-                var $tr = $(this);
-                var currentDepth = parseInt($tr.attr('data-treenode-depth'), 10);
-                var hide = false;
-                
-                // Check if any ancestor is collapsed
-                $tr.prevAll('tr').each(function() {
-                    var $prev = $(this);
-                    var prevDepth = parseInt($prev.attr('data-treenode-depth'), 10);
-                    if (prevDepth < currentDepth) {
-                        var parentPk = $prev.attr('data-treenode-pk');
-                        if (loadState(parentPk) === false) {
-                            hide = true;
-                        }
-                        return false;
-                    }
-                });
-                
-                if (hide) {
-                    $tr.hide();
-                }
-            });
-        }
-        applyCollapsedStates();
-
-        // Collapse a node and all its descendants
-        function collapseNode($tr, immediate) {
-            var parentDepth = parseInt($tr.attr('data-treenode-depth'), 10);
-            var $nextRows = $tr.nextAll('tr');
-            $nextRows.each(function() {
-                var $row = $(this);
-                var rowDepth = parseInt($row.attr('data-treenode-depth'), 10);
-                if (rowDepth > parentDepth) {
-                    if (immediate) {
-                        $row.hide();
-                    } else {
-                        $row.slideUp(300);
-                    }
-                    var childPk = $row.attr('data-treenode-pk');
-                    saveState(childPk, false);
-                } else {
-                    return false;
-                }
-            });
-        }
-
-        // Expand a node and reveal its immediate children
-        function expandNode($tr) {
-            var parentDepth = parseInt($tr.attr('data-treenode-depth'), 10);
-            var $nextRows = $tr.nextAll('tr');
-            $nextRows.each(function() {
-                var $row = $(this);
-                var rowDepth = parseInt($row.attr('data-treenode-depth'), 10);
-                if (rowDepth > parentDepth) {
-                    if (rowDepth === parentDepth + 1) {
-                        $row.slideDown('slow');
-                        var childPk = $row.attr('data-treenode-pk');
-                        if (loadState(childPk)) {
-                            expandNode($row);
-                        }
-                    }
-                } else {
-                    return false;
-                }
-            });
-        }
-
-        // Save expansion state to localStorage
-        function saveState(pk, isExpanded) {
-            if (window.localStorage) {
-                localStorage.setItem('treenode_state_' + pk, isExpanded ? '1' : '0');
-            }
-        }
-
-        // Load expansion state from localStorage
-        function loadState(pk) {
-            if (window.localStorage) {
-                var state = localStorage.getItem('treenode_state_' + pk);
-                return state === '1';
-            }
-            return true;
-        }
+      } else {
+        rowsHtml = '<tr><td colspan="3">Ничего не найдено</td></tr>';
+      }
+      // Update the table contents with the search results
+      $tableBody.html(rowsHtml);
     });
+  }, 500)); // delay 500ms
+
 })(django.jQuery || window.jQuery);

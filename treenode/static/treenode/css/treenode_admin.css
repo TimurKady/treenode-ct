@@ -11,7 +11,7 @@ Features:
 - Smooth hover effects and animations.
 - Consistent layout adjustments for better UI interaction.
 
-Version: 2.0.0
+Version: 2.1.0
 Author: Timur Kady
 Email: timurkady@yandex.com
 */
@@ -26,9 +26,7 @@ Email: timurkady@yandex.com
     display: inline-block;
     width: 10px;
     height: 10px;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    margin-right: 7px !important;
+    margin: 0px 3px !important;
     background-color: transparent;
     border: 1px solid transparent;
     padding: 1px;
@@ -44,9 +42,7 @@ Email: timurkady@yandex.com
     line-height: 10px;
     padding: 1px;
     cursor: pointer;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    margin-right: 7px !important;
+    margin: 0px 3px !important;
     border: 1px solid #ddd;
     border-radius: 4px;
     transition: background-color 0.2s ease, color 0.2s ease;
@@ -68,24 +64,6 @@ Email: timurkady@yandex.com
     color: #fff;
 }
 
-.treenode-toggle {
-    font-weight: bold;
-    display: inline-block;
-
-    text-align: center;
-    cursor: pointer;
-    margin-right: 5px;
-    border-radius: 4px;
-
-    padding: 2px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.treenode-toggle:hover {
-    background-color: #e0e0e0;
-    color: #007bff;
-}
-
 .dark-theme .treenode-toggle {
     color: #ccc;
     background-color: #444;
@@ -97,23 +75,28 @@ Email: timurkady@yandex.com
     color: #fff;
 }
 
-.treenode-wrapper {
+
+.treenode-drag-handle {
     display: inline-block;
-}
-
-.dark-theme .treenode-toggle {
-    color: #ccc;
-}
-
-.toggle-children {
-    cursor: pointer;
-}
-
-.drag-handle {
+    text-align: center;
+    font-weight: bold;
+    font-size: 10px;
+    width: 10px;
+    height: 10px;
+    line-height: 10px;
+    padding: 1px;
     cursor: grab;
     opacity: 0.25;
 }
 
-.drag-handle:hover {
-        opacity: 1.0;
+.treenode-drag-handle:hover {
+    opacity: 1.0;
+}
+
+.dark-theme treenode-drag-handle {
+    color: #ccc;
+}
+
+.treenode-wrapper {
+    display: inline-block;
 }

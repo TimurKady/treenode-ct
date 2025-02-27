@@ -13,49 +13,7 @@
 {% endblock %}
 
 {% block extrahead %}
-  {{ block.super }}
-  <script type="text/javascript">
-    document.addEventListener("DOMContentLoaded", function() {
-      // debounce function to optimize queries on input
-      function debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-      }
 
-      var searchInput = document.getElementById("search-input"); // предполагается, что есть поле поиска с таким id
-      if (searchInput) {
-        searchInput.addEventListener("input", debounce(function(event) {
-          var query = event.target.value;
-          // AJAX request to search, passing the model and query
-          fetch("/treenode/search/?model={{ model_label }}&q=" + encodeURIComponent(query))
-            .then(response => response.json())
-            .then(data => {
-              // Clear the current list
-              var tableBody = document.querySelector("table#result_list tbody");
-              if (tableBody) {
-                tableBody.innerHTML = "";
-                // Generate new lines for each node found
-                data.results.forEach(function(node) {
-                  var row = document.createElement("tr");
-                  // Например, первая ячейка — с кнопкой для раскрытия (если у узла есть дети)
-                  // и отступом, соответствующим уровню узла.
-                  var indent = "&nbsp;".repeat(node.level * 4);
-                  row.innerHTML = `
-                    <td class="toggle-children-cell">
-                      ${indent}
-                      ${node.is_leaf ? "" : '<button class="toggle-children" data-node-id="' + node.id + '">+</button>'}
-                    </td>
-                    <td>${node.text}</td>
-                  `;
-                  tableBody.appendChild(row);
-                });
-              }
-            });
-        }, 300)); // задержка 300 мс
-      }
-    });
-  </script>
+  {{ block.super }}
+
 {% endblock %}
