@@ -28,8 +28,8 @@ Django Fast TreeNode is suitable for a wide range of applications, from simple d
 In all applications, `django-fast-treenode` models show excellent performance and stability.
 
 ## Quick start
-1. Run `pip install django-fast-treenode`
-2. Add `treenode` to `settings.INSTALLED_APPS`:
+1. Run `pip install django-fast-treenode`.
+2. Add `treenode` to `settings.INSTALLED_APPS`.
 
 ```python
 INSTALLED_APPS = [
@@ -38,7 +38,7 @@ INSTALLED_APPS = [
 ]
 ```
 
-3. Define your model inherit from `treenode.models.TreeNodeModel`:
+3. Define your model inherit from `treenode.models.TreeNodeModel`.
 
 ```python
 from treenode.models import TreeNodeModel
@@ -65,17 +65,18 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-6. Run server and use
+6. Run server and use!
 
 ```bash
 >>> root = Category.objects.create(name="Root")
 >>> child = Category.objects.create(name="Child", tn_parent=root)
 >>> children = root.get_descendants()
 >>> parents = child.get_ancestors()
-
 ```
 
 ## Documentation
+Full documentation is available at [this link](#).
+
 Quick access links:
 * [Installation, configuration and fine tuning](#)
 * [Model Inheritance and Extensions](#)
@@ -85,7 +86,7 @@ Quick access links:
 * [Caching and working with cache](#)
 * [Migration and upgrade guide](#)
 
-Full documentation is available at [this link](#).
+Your wishes, objections, comments are welcome.
 
 ## License
 Released under [MIT License](https://github.com/TimurKady/django-fast-treenode/blob/main/LICENSE).
