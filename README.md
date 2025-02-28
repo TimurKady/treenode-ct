@@ -1,46 +1,98 @@
 
-# <span style="color:red">⚠️ Branch 2.1 is in development. Do not use it!</span>
+# ⚠️ Branch 2.1 is in development. Do not use it!
 
 
 # Django-fast-treenode 
-__Combination of Adjacency List and Closure Table__
+**Combining Adjacency List and Closure Table for Optimal Performance**
 
-## Functions
-Application for supporting tree (hierarchical) data structure in Django projects
-* **fast**: the fastest of the two methods is used to process requests, combining the advantages of an **Adjacency List** and a **Closure Table**,
-* **even faster**: the main resource-intensive operations are **cached**; **bulk operations** are used for inserts and changes,
-* **scale**: optimized for working with large models with a high level of nesting,
-* **easy setup**: just extend the abstract model/model-admin,
-* **synchronized**: model instances in memory are automatically updated,
-* **compatibility**: you can easily add a tree node to existing projects using `TreeNode` without changing the code,
-* **admin** integration: visualization options (accordion, breadcrumbs or padding),
-* **widget**: built-in Select2 to support arbitrary nesting levels.
 
-This is currently the most productive solution for working with hierarchical data in Django.
+**Django Fast TreeNode** is a high-performance Django application for working with tree structures, combining **Adjacency List** and **Closure Table** models. Each **TreeNodeModel** instance maintains two synchronized tables, enabling most operations to be performed with a single database query.
+
+## Features
+- **Hybrid storage model**: Combines Adjacency List and Closure Table for optimal performance.
+- **Custom caching system**: A built-in caching mechanism, specifically designed for this package, significantly boosts execution speed.
+- **Efficient queries**: Retrieve ancestors, descendants, breadcrumbs, and tree depth with minimal SQL queries.
+- **Bulk operations**: Supports fast insertion, movement, and deletion of nodes.
+- **Flexibility**: Fully integrates with Django ORM and adapts to various business logic needs.
+- **Admin panel integration**: Full compatibility with Django's admin panel, allowing intuitive management of tree structures.
+- **Import & Export functionality**: Built-in support for importing and exporting tree structures in multiple formats (CSV, JSON, XLSX, YAML, TSV), including integration with the Django admin panel.
+
+## Use Cases
+Django Fast TreeNode is suitable for a wide range of applications, from simple directories to complex systems with deep hierarchical structures:
+- **Categories and taxonomies**: Manage product categories, tags, and classification systems.
+- **Menus and navigation**: Create tree-like menus and nested navigation structures.
+- **Forums and comments**: Store threaded discussions and nested comment chains.
+- **Geographical data**: Represent administrative divisions, regions, and areas of influence.
+- **Organizational and Business Structures**: Model company hierarchies, business processes, employees and departments.
+
+In all applications, `django-fast-treenode` models show excellent performance and stability.
+
+## Quick Start
 
 ## Quick start
-1. Run ```pip install django-fast-treenode```
-2. Add ```treenode``` to ```settings.INSTALLED_APPS```
-3. Make your model inherit from ```treenode.models.TreeNodeModel``` (described below)
-4. Make your model-admin inherit from ```treenode.admin.TreeNodeModelAdmin``` (described below)
-5. Run python manage.py makemigrations and ```python manage.py migrate```
+1. Run `pip install django-fast-treenode`
+2. Add `treenode` to `settings.INSTALLED_APPS`:
 
-For more information on migrating from the **django-treenode** package and upgrading to version 2.0, see [below](#migration-guide).
+```python
+INSTALLED_APPS = [
+    ...
+    'treenode',
+]
+```
 
----
+3. Define your model inherit from `treenode.models.TreeNodeModel`:
 
-## Usage
+```python
+from treenode.models import TreeNodeModel
 
-Full documentation: 
+class Category(TreeNodeModel):
+    name = models.CharField(max_length=255)
+```
 
-Import and export:
+4. Make your model-admin inherit from `treenode.admin.TreeNodeModelAdmin`.
 
-Migration and upgrade guide:
+```python
+from treenode.admin import TreeNodeModelAdmin
+from .models import Category
 
----
+@admin.register(Category)
+class CategoryAdmin(TreeNodeModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+```
+5. Run migrations.
+
+```bash 
+python manage.py makemigrations
+python manage.py migrate
+```
+
+6. Run server and use
+
+```bash
+>>> root = Category.objects.create(name="Root")
+>>> child = Category.objects.create(name="Child", tn_parent=root)
+>>> children = root.get_descendants()
+>>> parents = child.get_ancestors()
+
+```
+
+## Documentation
+Quick access links:
+* [Installation, configuration and fine tuning](#)
+* [Model Inheritance and Extensions](#)
+* [Working with Admin Classes](#)
+* [API Reference](#)
+* [Import & Export](#)
+* [Caching and working with cache](#)
+* [Migration and upgrade guide](#)
+
+Full documentation is available at [this link](#).
 
 ## License
 Released under [MIT License](https://github.com/TimurKady/django-fast-treenode/blob/main/LICENSE).
 
 ## Credits
-Special thanks to [Mathieu Leplatre](https://blog.mathieu-leplatre.info/pages/about.html) for the advice used in writing this application.
+Thanks to everyone who contributed to the development and testing of this package, as well as the Django community for their inspiration and support. Special thanks to **[Fabio Caccamo](https://github.com/fabiocaccamo)** for the idea behind creating a fast Django application for handling hierarchies and **[Mathieu Leplatre](https://github.com/leplatrem)** for the advice used in writing this application.
+
+
