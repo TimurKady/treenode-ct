@@ -32,20 +32,25 @@ In all applications, `django-fast-treenode` models show excellent performance an
 ## Quick start
 1. Run `pip install django-fast-treenode`
 2. Add `treenode` to `settings.INSTALLED_APPS`:
+
 ```python
 INSTALLED_APPS = [
     ...
     'treenode',
 ]
 ```
+
 3. Define your model inherit from `treenode.models.TreeNodeModel`:
+
 ```python
 from treenode.models import TreeNodeModel
 
 class Category(TreeNodeModel):
     name = models.CharField(max_length=255)
 ```
+
 4. Make your model-admin inherit from `treenode.admin.TreeNodeModelAdmin`.
+
 ```python
 from treenode.admin import TreeNodeModelAdmin
 from .models import Category
@@ -56,16 +61,20 @@ class CategoryAdmin(TreeNodeModelAdmin):
     search_fields = ("name",)
 ```
 5. Run migrations.
+
 ```bash 
 python manage.py makemigrations
 python manage.py migrate
 ```
+
 6. Run server and use
+
 ```bash
 >>> root = Category.objects.create(name="Root")
 >>> child = Category.objects.create(name="Child", tn_parent=root)
 >>> children = root.get_descendants()
 >>> parents = child.get_ancestors()
+
 ```
 
 ## Documentation
@@ -85,5 +94,3 @@ Released under [MIT License](https://github.com/TimurKady/django-fast-treenode/b
 
 ## Credits
 Thanks to everyone who contributed to the development and testing of this package, as well as the Django community for their inspiration and support. Special thanks to **[Fabio Caccamo](https://github.com/fabiocaccamo)** for the idea behind creating a fast Django application for handling hierarchies and **[Mathieu Leplatre](https://github.com/leplatrem)** for the advice used in writing this application.
-
-
