@@ -27,8 +27,6 @@ Django Fast TreeNode is suitable for a wide range of applications, from simple d
 
 In all applications, `django-fast-treenode` models show excellent performance and stability.
 
-## Quick Start
-
 ## Quick start
 1. Run `pip install django-fast-treenode`
 2. Add `treenode` to `settings.INSTALLED_APPS`:
