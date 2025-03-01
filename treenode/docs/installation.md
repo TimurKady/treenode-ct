@@ -35,6 +35,8 @@ python manage.py migrate
 #### Migrating from Other Packages
 If you are migrating from other tree management solutions, additional steps may be required. Please refer to the [Migration and Upgrade Guide](migration.md) for detailed instructions.
 
+---
+
 ### Configuration
 
 #### Cache Setup
@@ -57,6 +59,8 @@ CACHES = {
 **Important Notes:**
 - You can use **any cache backend**, including Django’s built-in options or external solutions like **Redis** or **Memcached** .
 - **`KEY_PREFIX` must be an empty string (`""`)**, and **`VERSION` must be `None`**, otherwise cache inconsistencies may occur.
+
+---
 
 #### Cache Size Allocation
 By default, the cache stores all tree-related data for models inheriting from `TreeNodeModel`. You can control the cache size using `TREENODE_CACHE_LIMIT` in **megabytes**.
