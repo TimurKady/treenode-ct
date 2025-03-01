@@ -1,9 +1,9 @@
-# Working with Admin Classes
+## Working with Admin Classes
 
-## Using `TreeNodeModelAdmin`
+### Using `TreeNodeModelAdmin`
 The easiest way to integrate tree structures into Django’s admin panel is by inheriting from `TreeNodeModelAdmin`. This base class provides all the necessary functionality for managing hierarchical data.
 
-####  `admin.py`:
+##### admin.py:
 ```python
 from django.contrib import admin
 from treenode.admin import TreeNodeModelAdmin
@@ -36,17 +36,17 @@ The accordion mode is **always active**, and the setting only affects how nodes 
 
 **Why Dynamic Loading**:  Traditional pagination does not work well for **deep hierarchical trees**, as collapsed trees may contain a **huge number of nodes**, which is in the hundreds of thousands. The dynamic approach allows efficient loading, reducing database load while keeping large trees manageable.
 
-### Search Functionality
+#### Search Functionality
 The search bar helps quickly locate nodes within large trees. As you type, **an AJAX request retrieves up to 20 results** based on relevance. If you don’t find the desired node, keep typing to refine the search until fewer than 20 results remain.
 
-## Working with Forms
+### Working with Forms
 
-### Using `TreeNodeForm`
+#### Using TreeNodeForm
 If you need to customize forms for tree-based models, inherit from `TreeNodeForm`. It provides:
 - A **custom tree widget** for selecting parent nodes.
 - Automatic **exclusion of self and descendants** from the parent selection to prevent circular references.
 
-#### `forms.py`:
+##### `forms.py`:
 ```python
 from treenode.forms import TreeNodeForm
 from .models import Category
@@ -70,12 +70,12 @@ Key Considerations:
 This method ensures that the form correctly associates with different tree models dynamically.
 
 
-## Using TreeWidget Widget
+### Using TreeWidget Widget
 
-### The TreeWidget Class
+#### The TreeWidget Class
 The `TreeWidget` class is a **custom Select2-based widget** that enables hierarchical selection in forms. While it is used inside the Django admin panel by default, it can **also be used in regular forms** outside the admin panel.
 
-#### `widgets.py`
+##### `widgets.py`
 
 ```python
 from django import forms
