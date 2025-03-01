@@ -29,9 +29,10 @@ Speeding up tree operations and reducing database load.
 - **Advanced Sorting**: Adding multiple sorting strategies for tree nodes, including manual ordering and hierarchical priority rules.
 - **Admin Panel Enhancements**: Expanding the functionality of the Django admin interface for managing hierarchical data more efficiently.
 
-### **Version 3.0 – Fourth-Generation Cache Management System**
-- **Reworking Adjacency List and Closure Table managers** for a new caching system.
+### **Version 3.0 – Asynchronous operations and Fourth-Generation Cache Management System**
+- **Asynchronous operations** support, ensuring efficient working and data processing in non-blocking environments.
 - **Shifting from caching computed results to directly caching tree nodes**, reducing recomputation overhead and improving cache efficiency.
+- **Reworking Adjacency List and Closure Table managers** for a new caching system.
 - **Enhancing cache consistency** across multiple processes (WSGI, Gunicorn, Uvicorn) with a global synchronization mechanism.
 
 ### **Version 4.0 – Moving Beyond Django ORM**
