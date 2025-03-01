@@ -5,20 +5,21 @@ The `django-fast-treenode` package provides a **comprehensive set of methods and
 
 The API is divided into several logical groups, each serving a specific purpose:
 
-- **TreeNodeModel Methods** – Core methods for managing tree nodes, including saving, deleting, and caching.
-- **Ancestor Methods** – Retrieve and manipulate ancestor nodes.
-- **Children Methods** – Manage direct child nodes efficiently.
-- **Descendant Methods** – Work with entire subtrees of nodes.
-- **Family Methods** – Retrieve and analyze relationships within a node's family (ancestors, siblings, descendants).
-- **Node Utility Methods** – Additional methods for retrieving node order, paths, levels, and priorities.
-- **Root Node Methods** – Manage and retrieve root nodes of trees.
-- **Sibling Methods** – Handle relationships between sibling nodes.
-- **Tree Methods** – Serialize and manipulate the entire tree structure, including JSON export/import.
-- **Logical Methods** – Determine relationships between nodes (e.g., is ancestor, is sibling, is leaf).
-- **Property Accessors** – Shortcut properties for commonly used methods like `parent`, `children`, `siblings`, `depth`, and `priority`.
+- **[TreeNodeModel Methods](#treenodenodel-methods)** – Core methods for managing tree nodes, including saving, deleting, and caching.
+- **[Ancestor Methods](#ancestor-methods)** – Retrieve and manipulate ancestor nodes.
+- **[Children Methods](#ahildren-methods)** – Manage direct child nodes efficiently.
+- **[Descendant Methods](#descendant-methods)** – Work with entire subtrees of nodes.
+- **[Family Methods](#family-methods)** – Retrieve and analyze relationships within a node's family (ancestors, siblings, descendants).
+- **[Node Utility Methods](#node-utility-methods)** – Additional methods for retrieving node order, paths, levels, and priorities.
+- **[Root Node Methods](#root-node-methods)** – Manage and retrieve root nodes of trees.
+- **[Sibling Methods](#sibling-methods)** – Handle relationships between sibling nodes.
+- **[Tree Methods](#tree-methods)** – Serialize and manipulate the entire tree structure, including JSON export/import.
+- **[Logical Methods](#logical-methods)** – Determine relationships between nodes (e.g., is ancestor, is sibling, is leaf).
+- **[Property Accessors](#property-accessors)** – Shortcut properties for commonly used methods like `parent`, `children`, `siblings`, `depth`, and `priority`.
 
 Each section below briefly describes the purpose of the respective method group.
 
+---
 
 ### TreeNodeModel Methods
 These methods handle the basic operations of the tree structure. They ensure that the data in the Adjacency Table and the Closure Table are synchronized. This section covers:
@@ -53,6 +54,8 @@ This ensures greater flexibility in managing tree structures while preventing or
 ```python
 obj.save()
 ```
+
+---
 
 ### Ancestor Methods
 These methods allow retrieving **all ancestor nodes**, ordered from root to parent. They provide filtering options by depth, retrieval of primary keys for optimized queries, and counting functionality for analysis.
@@ -135,6 +138,8 @@ Returns the **last child node** or `None` if it has no children:
 obj.get_last_child()
 ```
 
+---
+
 ### Descendant Methods
 These methods enable working with **entire subtrees**. You can retrieve all descendants, filter by depth, count them, and fetch their primary keys for optimized queries.
 
@@ -191,6 +196,8 @@ Return number of nodes in family:
 obj.get_family()
 ```
 
+---
+
 ### Node Utility Methods
 This set of methods helps manage node-related operations such as:
 
@@ -241,23 +248,23 @@ obj.insert_at(target, position='first-child', save=False)
 Parameters:
 - `target`: еhe target node relative to which this node will be placed.
 - `position`: the position, relative to the target node, where the current node object will be moved to, can be one of:
--- `first-root`: the node will be the first root node;
--- `last-root`: the node will be the last root node;
--- `sorted-root`: the new node will be moved after sorting by the treenode_sort_field field;
--- `first-sibling`: the node will be the new leftmost sibling of the target node;
--- `left-sibling`: the node will take the target node’s place, which will be moved to the target position with shifting follows nodes;
--- `right-sibling`: the node will be moved to the position after the target node;
--- `last-sibling`: the node will be the new rightmost sibling of the target node;
--- `sorted-sibling`: the new node will be moved after sorting by the treenode_sort_field field;
--- first-child: the node will be the first child of the target node;
--- last-child: the node will be the new rightmost child of the target
--- sorted-child: the new node will be moved after sorting by the treenode_sort_field field.
+  - `first-root`: the node will be the first root node;
+  - `last-root`: the node will be the last root node;
+  - `sorted-root`: the new node will be moved after sorting by the treenode_sort_field field;
+  - `first-sibling`: the node will be the new leftmost sibling of the target node;
+  - `left-sibling`: the node will take the target node’s place, which will be moved to the target position with shifting follows nodes;
+  - `right-sibling`: the node will be moved to the position after the target node;
+  - `last-sibling`: the node will be the new rightmost sibling of the target node;
+  - `sorted-sibling`: the new node will be moved after sorting by the treenode_sort_field field;
+  - first-child: the node will be the first child of the target node;
+  - last-child: the node will be the new rightmost child of the target
+  - sorted-child: the new node will be moved after sorting by the treenode_sort_field field.
 - `save` : if `save=true`, the node will be saved in the tree. Otherwise,  the method will return a model instance with updated fields: parent field and position in sibling list.
 
 Before using this method, the model instance must be correctly created with all required fields defined. If the model has required fields, then simply creating an object and calling insert_at() will not work, because Django will raise an exception.
 
----
 
+---
 
 ### Root Node Methods
 These methods allow managing **root nodes** efficiently. They provide retrieval, counting, and manipulation of the first and last root nodes in the tree.
@@ -324,6 +331,7 @@ Add a new node as a sibling to the current node object.
 ```python
 obj.add_sibling(position=None, **kwargs):
 ```
+
 `position` specifies the order position of the object being added in the list of children of this node. It can be `'first-sibling'`, `'left-sibling'`, `'right-sibling'`, `'last-sibling'`, `'sorted-sibling'`, or an integer value.
 
 The `**kwargs` parameters contain the object creation data that will be passed to the inherited node model. Instead of passing the object creation data, you can pass an already created (but not yet saved) model instance to insert into the tree using the `instance` keyword.
@@ -562,9 +570,7 @@ obj.is_root_of(target_obj)
 Return `True` if the current node **is sibling** of target_obj:
 ```python
 obj.is_sibling_of(target_obj)
-`
-
----
+```
 
 ---
 

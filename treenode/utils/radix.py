@@ -56,3 +56,6 @@ def quick_sort(pairs):
     # Access keys in sorted order
     sorted_keys = [key for key, _ in sorted_pairs]
     return sorted_keys
+
+
+# The End

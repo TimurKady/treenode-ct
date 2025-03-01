@@ -325,5 +325,4 @@ class TreeNodeImporter:
         text = self.get_text_content()
         return list(csv.DictReader(StringIO(text), delimiter="\t"))
 
-
 # The End
