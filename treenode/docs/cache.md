@@ -157,18 +157,18 @@ Each new entry initially goes into **FIFO**. If accessed **more than N times**, 
 
 When data is modified or deleted, the cache **automatically resets** to prevent outdated information. This ensures that modified tree structures do not retain stale data in the cache.
 
-#### 4. Dynamic Time Threshold (X)
+#### 4. Dynamic Time Threshold (DTT)
 
-To automatically clear outdated records, an **adaptive mechanism** is used. Instead of a static TTL, the **X parameter** is dynamically calculated based on **Poisson distribution**.
+To automatically clear outdated records, an **adaptive mechanism** is used. Instead of a static TTL, the **DTT parameter** is dynamically calculated based on **Poisson distribution**.
 
-How X is calculated:
-1. Store **N recent query timestamps** (e.g., 50-100).
-2. Compute the **average interval between queries (T)**: ``` T = (1/N) * Σ (t_i - t_(i-1)), i=1...N```
-3. Set **X = 3T**, which removes **95% of infrequent queries**.
+How DTT is calculated:
+1. Compute the **average interval between queries (T)**: ``` T = (1/N) * Σ (t_i - t_(i-1)), i=1...N```
+2. Store **averaged value** `ΣΔt / N`
+3. Set **DTT = 3T**, which removes **95% of infrequent queries**.
 
 **Why this is better than a fixed TTL:**
-- If queries are rare → X **increases**, preventing premature deletions.
-- If queries are frequent → X **decreases**, accelerating cache clearing.
+- If queries are rare → DTT **increases**, preventing premature deletions.
+- If queries are frequent → DTT **decreases**, accelerating cache clearing.
 
 All calculations happen **automatically**, without manual configuration.
 
@@ -181,7 +181,7 @@ Additionally, this mechanism will support synchronization in multiprocess enviro
 The next generation of caching will include:
 
 - **Middleware for caching nodes**, considering nested objects.
-- **Smart prediction of peak loads**.
-- **Optimized timestamp storage** (instead of lists, an averaged value `ΣΔt / N` will be used).
+- **"Smart" prediction** of peak and dynamics of loads.
+- **Asynchronous operations** support, ensuring efficient caching and retrieval in non-blocking environments.
 
 Future versions will continue improving this mechanism, making it **even more efficient and predictable** when working with large tree structures.
