@@ -1,0 +1,44 @@
+site_name: Django Fast TreeNode
+repo_url: https://github.com/TimurKady/django-fast-treenode
+repo_name: TimurKady/django-fast-treenode
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.expand
+    - search.highlight
+    - search.share
+
+nav:
+  - Home: index.md
+  - About: about.md
+  - Installation:
+      - Installation & Configuration: installation.md
+      - Migration Guide: migration.md
+  - Models:
+      - Model Inheritance & Extensions: models.md
+  - Admin Panel: admin.md
+  - API Reference: api.md
+  - Caching: cache.md
+  - Import & Export: import_export.md
+  - Roadmap: radmap.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.tasklist
+  - pymdownx.emoji
+
+plugins:
+  - search
+  - mkdocstrings
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/TimurKady/django-fast-treenode
