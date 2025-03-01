@@ -721,7 +721,7 @@ Return the materialized path. See [`get_order()`](#get_order) method.
 
 ---
 
-### Obsolete methods
+### Excluded methods
 Some previously available methods have been replaced by new methods.
 
 | Obsolete method  | Desctiption | New implementation |
