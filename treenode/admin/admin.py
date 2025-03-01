@@ -20,7 +20,7 @@ from django.utils.safestring import mark_safe
 
 
 from .changelist import SortedChangeList
-from .import_export import AdminViewsMixin
+from .mixins import AdminMixin
 from ..forms import TreeNodeForm
 from ..widgets import TreeWidget
 
@@ -29,7 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class TreeNodeAdminModel(AdminViewsMixin, admin.ModelAdmin):
+class TreeNodeAdminModel(AdminMixin, admin.ModelAdmin):
     """
     TreeNodeAdmin class.
 

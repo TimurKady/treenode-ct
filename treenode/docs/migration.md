@@ -1,5 +1,5 @@
-## Migrations Guide
-### Migration from _django-treenode_ packege
+# Migrations Guide
+## Migration from _django-treenode_ packege
 The migration process from `django-treenode` is fully automated. No manual steps are required. Upon upgrading, the necessary data structures will be checked and updated automatically.
 Run the following commands in the terminal:
 
@@ -13,7 +13,7 @@ It's unlikely that you'll need or want this, but in exceptional cases you can ca
 
 ---
 
-### Update _django-fast-treenode_ version 2.1 and less
+## Update _django-fast-treenode_ version 2.1 and less
 The sequence of actions when migrating from previous versions of `django-fast-treenode` is similar to upgrading models of the `django-treenode` package.
 Run the following commands in the terminal:
 
@@ -27,11 +27,11 @@ Now your models are updated and running even faster than before.
 
 ---
 
-### Migration from _django-mptt_ or _django-treebeard_ packege
+## Migration from _django-mptt_ or _django-treebeard_ packege
 Migration from other packages is not as seamless as with `django-treebeard`, which is probably understandable. However, `django-fast-treenode` has been specially tweaked so that such migration requires minimal effort, including minimal changes to your project code.
 Below is a guide on how to migrate to `django-fast-treenode` from other packages using a project using `django-treebeard` as an example. Migration from other packages will involve similar steps.
 
-#### Step 1: Export existing data
+### Step 1: Export existing data
 Launch the Python console:
 
 ```bash
@@ -80,7 +80,7 @@ pip install django-fast-treenode
 
 Before you start the migration, it is important to make sure **you have a backup of your database**, as the tree storage structure will change.
 
-#### Step 2: Preparing for Migration
+### Step 2: Preparing for Migration
 If you have a model in your project that uses `treebeard`, it probably looks like this:
 ```python
 from treebeard.mp_tree import MP_Node
@@ -106,7 +106,7 @@ The `tn_priority` value will be generated automatically if not specified during 
 
 > Note: sorting functions are available for `django-tree-node` version 2.3 and higher.
 
-#### Step 3: Update the code
+### Step 3: Update the code
 The `django-fast-treenode` package contains the full set of methods you are used to. But the methods for working with the tree are slightly different. For example:
 
 |**django-treebeard** | **django-fast-treenode** |**Features of use**|
@@ -120,7 +120,7 @@ As you can see, unlike treebeard, django-fast-treenode provides more features, a
 For more details, refer to the `django-fast-treenode` documentation and update your code accordingly
 
 
-#### Step 4: Create Migrations
+### Step 4: Create Migrations
 After changing the model, new migrations need to be created and applied.
 
 ```bash
@@ -130,7 +130,7 @@ python manage.py migrate
 
 After a successful migration, you can remove references to `django-treebeard` in `requirements.txt` and `INSTALLED_APPS` if they were there.
 
-#### Step 5:  Data Import
+### Step 5:  Data Import
 Now start the server.
    ```bash
    python manage.py runserver

@@ -14,7 +14,7 @@ from treenode.cache import cached_method
 class TreeNodeSiblingsMixin(models.Model):
     """TreeNode Siblings Mixin."""
 
-    def add_sibling(self, instance=None, position=None, **kwargs):
+    def add_sibling(self, position=None, **kwargs):
         """
         Add a new node as a sibling to the current node object.
 
@@ -25,6 +25,10 @@ class TreeNodeSiblingsMixin(models.Model):
             priority = position
             parent = self.tn_parent
         else:
+            if position not in [
+                    'first-sibling', 'left-sibling', 'right-sibling',
+                    'last-sibling', 'sorted-sibling']:
+                raise ValueError(f"Invalid position format: {position}")
             parent, priority = self._meta.model._get_place(self, position)
 
         instance = kwargs.get("instance")

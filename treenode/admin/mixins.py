@@ -26,8 +26,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class AdminViewsMixin(admin.ModelAdmin):
-    """AdminViewstMixin Mixin."""
+class AdminMixin(admin.ModelAdmin):
+    """Admin Mixin with views."""
 
     def change_list_view(self, request):
         """

@@ -74,16 +74,6 @@ class TreeNodePropertiesMixin:
         return self.get_descendants_pks()
 
     @property
-    def descendants_tree(self):
-        """Get a n-dimensional dict representing the model tree."""
-        return self.get_descendants_tree()
-
-    @property
-    def descendants_tree_display(self):
-        """Get a multiline string representing the model tree."""
-        return self.get_descendants_tree_display()
-
-    @property
     def first_child(self):
         """Get the first child node."""
         return self.get_first_child()

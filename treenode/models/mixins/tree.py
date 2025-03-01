@@ -222,13 +222,19 @@ class TreeNodeTreeMixin(models.Model):
 
     @classmethod
     @cached_method
-    def get_tree_display(cls, symbol="&mdash;"):
+    def get_tree_display(cls, instance=None, symbol="&mdash;"):
         """Get a multiline string representing the model tree."""
-        # Load the tree with the required preloads and depth annotation.
-        queryset = cls.objects.all()\
-            .prefetch_related("tn_children")\
-            .annotate(depth=models.Max("parents_set__depth"))\
-            .order_by("depth", "tn_parent", "tn_priority")
+        # If instance is passed, we get all its descendants (including itself)
+        if instance:
+            queryset = instance.get_descendants_queryset(include_self=True)\
+                .prefetch_related("tn_children")\
+                .annotate(depth=models.Max("parents_set__depth"))\
+                .order_by("depth", "tn_parent", "tn_priority")
+        else:
+            queryset = cls.objects.all()\
+                .prefetch_related("tn_children")\
+                .annotate(depth=models.Max("parents_set__depth"))\
+                .order_by("depth", "tn_parent", "tn_priority")
         # Convert queryset to list for indexed access
         nodes = list(queryset)
         sorted_nodes = cls._sort_node_list(nodes)

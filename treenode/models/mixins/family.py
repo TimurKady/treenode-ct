@@ -52,12 +52,7 @@ class TreeNodeFamilyMixin(models.Model):
         return list(queryset)
 
     def get_family_count(self):
-        """
-        Return node family.
-
-        Return a pk-list containing the ancestors, the model itself and
-        the descendants, in tree order.
-        """
+        """Return number of nodes in family."""
         return self.get_family_queryset().count()
 
 # The End
