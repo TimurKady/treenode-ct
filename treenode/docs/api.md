@@ -5,9 +5,9 @@ The `django-fast-treenode` package provides a **comprehensive set of methods and
 
 The API is divided into several logical groups, each serving a specific purpose:
 
-- **[TreeNodeModel Methods](#treenodenodel-methods)** – Core methods for managing tree nodes, including saving, deleting, and caching.
+- **[TreeNodeModel Methods](#treenodemodel-methods)** – Core methods for managing tree nodes, including saving, deleting, and caching.
 - **[Ancestor Methods](#ancestor-methods)** – Retrieve and manipulate ancestor nodes.
-- **[Children Methods](#ahildren-methods)** – Manage direct child nodes efficiently.
+- **[Children Methods](#children-methods)** – Manage direct child nodes efficiently.
 - **[Descendant Methods](#descendant-methods)** – Work with entire subtrees of nodes.
 - **[Family Methods](#family-methods)** – Retrieve and analyze relationships within a node's family (ancestors, siblings, descendants).
 - **[Node Utility Methods](#node-utility-methods)** – Additional methods for retrieving node order, paths, levels, and priorities.
