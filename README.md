@@ -11,7 +11,7 @@
 ## Features
 - **Hybrid storage model**: Combines Adjacency List and Closure Table for optimal performance.
 - **Custom caching system**: A built-in caching mechanism, specifically designed for this package, significantly boosts execution speed.
-- **Efficient queries**: Retrieve ancestors, descendants, breadcrumbs, and tree depth with minimal SQL queries.
+- **Efficient queries**: Retrieve ancestors, descendants, breadcrumbs, and tree depth with only one SQL queriy.
 - **Bulk operations**: Supports fast insertion, movement, and deletion of nodes.
 - **Flexibility**: Fully integrates with Django ORM and adapts to various business logic needs.
 - **Admin panel integration**: Full compatibility with Django's admin panel, allowing intuitive management of tree structures.
@@ -45,6 +45,7 @@ from treenode.models import TreeNodeModel
 
 class Category(TreeNodeModel):
     name = models.CharField(max_length=255)
+    treenode_display_field = "name"
 ```
 
 4. Make your model-admin inherit from `treenode.admin.TreeNodeModelAdmin`.
@@ -69,9 +70,11 @@ python manage.py migrate
 
 ```bash
 >>> root = Category.objects.create(name="Root")
->>> child = Category.objects.create(name="Child", tn_parent=root)
->>> children = root.get_descendants()
->>> parents = child.get_ancestors()
+>>> child = Category.objects.create(name="Child")
+>>> child.set_parent(root)
+>>> root_descendants_list = root.get_descendants()
+>>> root_children_queryset = root.get_children_queryset()
+>>> ancestors_pks = child.get_ancestors_pks()
 ```
 
 ## Documentation
@@ -92,4 +95,6 @@ Your wishes, objections, comments are welcome.
 Released under [MIT License](https://github.com/TimurKady/django-fast-treenode/blob/main/LICENSE).
 
 ## Credits
-Thanks to everyone who contributed to the development and testing of this package, as well as the Django community for their inspiration and support. Special thanks to **[Fabio Caccamo](https://github.com/fabiocaccamo)** for the idea behind creating a fast Django application for handling hierarchies and **[Mathieu Leplatre](https://github.com/leplatrem)** for the advice used in writing this application.
+Thanks to everyone who contributed to the development and testing of this package, as well as the Django community for their inspiration and support. 
+
+Special thanks to [Fabio Caccamo](https://github.com/fabiocaccamo) for the idea behind creating a fast Django application for handling hierarchies and [Mathieu Leplatre](https://github.com/leplatrem) for the advice used in writing this application.
