@@ -263,6 +263,64 @@ Parameters:
 
 Before using this method, the model instance must be correctly created with all required fields defined. If the model has required fields, then simply creating an object and calling insert_at() will not work, because Django will raise an exception.
 
+#### move_to
+Moves the model instance relative to the target node and sets its position (if necessary).
+```python
+obj.move_to(target, position=0)
+```
+Parameters:
+- `target`: еhe target node relative to which this node will be placed.
+- `position` – the position, relative to the target node, where the current node object will be moved to. For detals see [insert_at](#insert_at) method.
+
+#### get_path
+Returns Materialized Path of node. The materialized path is constructed by recording the position of each node within its parent's list of children, tracing this sequence back through all its ancestors.
+```python
+obj.get_path(prefix='', suffix='', delimiter='.', format_str='')
+```
+
+#### get_parent
+Returns the parent node.
+```python
+obj.get_parent()
+```
+
+#### set_parent
+Sets the parent node.
+```python
+obj.set_parent(parent_obj)
+```
+
+#### get_parent_pk
+Returns the parent node pk.
+```python
+obj.get_parent_pk()
+```
+
+#### get_priority
+Returns the ordinal position of a node in its parent's list.
+```python
+obj.get_priority()
+```
+
+#### set_priority
+Sets the ordinal position of a node in its parent's list. Takes an integer value as the `priority` parameter.
+```python
+obj.set_priority(priority=0)
+```
+
+If the `priority` value is found to be greater than the number of siblings, the node will be placed last in the list.
+
+#### get_root
+Returns the root node for the current node.
+```python
+obj.get_root()
+```
+
+#### get_root_pk
+Returns the root node pk for the current node.
+```python
+obj.get_root_pk()
+```
 
 ---
 
