@@ -471,7 +471,8 @@ Return an **n-dimensional dictionary** representing the model tree.
 cls.dump_tree(instance=None)
 ```
 
-Introduced for compatibility with other packages. See [`get_tree()`](#get_tree) method.
+Introduced for compatibility with other packages. In reality, [`get_tree()`](#get_tree) method is used. 
+This method is not recommended for use, as it will be excluded in the future.
 
 #### get_tree
 Return an **n-dimensional dictionary** representing the model tree.
