@@ -717,8 +717,11 @@ Returns an n-dimensional dict representing the model tree. See [`get_tree()`](#g
 #### cls.tree_display
 Returns a multiline string representing the model tree. See [`get_tree_display()`](#get_tree_display) method.
 
+**Warning**: Use with caution! Will be changed in future versions.
+
 #### obj.tn_order
 Return the materialized path. See [`get_order()`](#get_order) method.
+
 **Warning**: Use with caution! Will be changed in future versions.
 
 ---
