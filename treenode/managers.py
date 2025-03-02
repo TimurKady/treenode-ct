@@ -33,9 +33,9 @@ class ClosureQuerySet(models.QuerySet):
         """
         Sort nodes topologically.
 
-        Возвращает список узлов, отсортированных от корней к листьям.
-        Узел считается корневым, если его tn_parent равен None или его
-        родитель отсутствует в node_list.
+        Returns a list of nodes sorted from roots to leaves.
+        A node is considered a root if its tn_parent is None or its
+        parent is not in node_list.
         """
         visited = set()  # Will store the ids of already processed nodes
         result = []
